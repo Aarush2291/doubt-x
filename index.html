@@ -1,0 +1,1095 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DoubtX — AI JEE Platform</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+html,body{height:100%;margin:0;background:#020617;}
+.gb{background:linear-gradient(135deg,#3b82f6,#8b5cf6);padding:1px;border-radius:1rem;}
+.gb>div{background:#1e293b;border-radius:calc(1rem - 1px);}
+.glow-b{box-shadow:0 0 24px rgba(59,130,246,0.35);}
+.glow-v{box-shadow:0 0 24px rgba(139,92,246,0.35);}
+.tab-on{background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;}
+.tab-off{background:#1e293b;color:#94a3b8;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.aup{animation:up .35s ease-out forwards;}
+.pdot{animation:pulse 2s infinite;}
+.spinner{width:32px;height:32px;border:3px solid rgba(139,92,246,.2);border-top-color:#8b5cf6;border-radius:50%;animation:spin .8s linear infinite;}
+.sm-spin{width:18px;height:18px;border:2px solid rgba(139,92,246,.2);border-top-color:#8b5cf6;border-radius:50%;animation:spin .8s linear infinite;display:inline-block;vertical-align:middle;}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#0f172a}::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
+.prose p{color:#cbd5e1;line-height:1.8;margin:.4rem 0;}
+.prose strong{color:#93c5fd;}
+.prose code{background:#0f172a;padding:2px 6px;border-radius:4px;color:#c4b5fd;font-family:'JetBrains Mono',monospace;font-size:.85em;}
+.prose ul{padding-left:1.2rem;color:#cbd5e1;}.prose li{margin:.3rem 0;}
+.drop-active{border-color:#8b5cf6!important;background:rgba(139,92,246,.08)!important;}
+.opt-row{display:flex;align-items:center;gap:.75rem;padding:.85rem 1rem;border:1px solid #334155;border-radius:.75rem;cursor:pointer;transition:border .15s,background .15s;}
+.opt-row:hover{border-color:#3b82f6;background:rgba(59,130,246,.08);}
+.opt-sel{border-color:#3b82f6!important;background:rgba(59,130,246,.12)!important;}
+.opt-ok{border-color:#22c55e!important;background:rgba(34,197,94,.1)!important;}
+.opt-bad{border-color:#ef4444!important;background:rgba(239,68,68,.1)!important;}
+.opt-lbl{width:2rem;height:2rem;display:flex;align-items:center;justify-content:center;border-radius:.5rem;background:#1e293b;font-weight:700;font-size:.85rem;flex-shrink:0;}
+select,input[type=text],input[type=email],input[type=password],textarea{background:#0f172a;border:1px solid #334155;border-radius:.75rem;padding:.65rem 1rem;color:#e2e8f0;font-size:.875rem;outline:none;font-family:inherit;transition:border .15s;width:100%;}
+select:focus,input:focus,textarea:focus{border-color:#3b82f6;}
+button{font-family:inherit;cursor:pointer;}
+.pill{display:inline-flex;align-items:center;gap:.4rem;padding:.2rem .65rem;border-radius:9999px;font-size:.72rem;font-weight:600;}
+.chat-user{background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;border-radius:1rem 1rem .25rem 1rem;padding:.7rem 1rem;max-width:85%;align-self:flex-end;font-size:.875rem;line-height:1.5;}
+.chat-ai{background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:1rem 1rem 1rem .25rem;padding:.7rem 1rem;max-width:90%;align-self:flex-start;font-size:.875rem;line-height:1.6;}
+.chat-ai strong{color:#93c5fd;}.chat-ai code{background:#0f172a;padding:1px 5px;border-radius:3px;color:#c4b5fd;font-size:.82em;}
+</style>
+</head>
+<body class="font-['Outfit',sans-serif] text-slate-100">
+<div id="app"></div>
+<script>
+// ═══════════════════════════════════════ DB ═══
+const DB_KEY='doubtx_v4';
+function dbLoad(){try{const r=localStorage.getItem(DB_KEY);if(r)return JSON.parse(r);}catch(e){}return null;}
+function dbSave(){try{localStorage.setItem(DB_KEY,JSON.stringify({users:S.users,theoryDB:S.theoryDB,questDB:S.questDB,pypDB:S.pypDB}));}catch(e){console.warn('save fail',e);}}
+// ═══════════════════════════════════════ STATE ═══
+const S={user:null,page:'landing',users:[],theoryDB:{},questDB:{},pypDB:{}};
+const ADMIN_CODE='ADMIN2024';
+const SYLLABUS={
+  Physics:['Units and Measurements','Kinematics','Laws of Motion','Work Energy and Power','Rotational Motion','Gravitation','Properties of Solids and Liquids','Thermodynamics','Kinetic Theory of Gases','Oscillations and Waves','Electrostatics','Current Electricity','Magnetic Effects and Magnetism','Electromagnetic Induction and AC','Electromagnetic Waves','Optics','Dual Nature of Matter','Atoms and Nuclei','Electronic Devices','Experimental Skills'],
+  Chemistry:['Basic Concepts in Chemistry','Atomic Structure','Chemical Bonding','Chemical Thermodynamics','Solutions','Equilibrium','Redox and Electrochemistry','Chemical Kinetics','Classification of Elements','p-Block Elements','d and f Block Elements','Coordination Compounds','Purification of Organic Compounds','Basic Principles of Organic Chemistry','Hydrocarbons','Organic Compounds with Halogens','Organic Compounds with Oxygen','Organic Compounds with Nitrogen','Biomolecules','Practical Chemistry'],
+  Mathematics:['Sets Relations and Functions','Complex Numbers and Quadratic Equations','Matrices and Determinants','Permutations and Combinations','Binomial Theorem','Sequence and Series','Limit Continuity and Differentiability','Integral Calculus','Differential Equations','Coordinate Geometry','Three Dimensional Geometry','Vector Algebra','Statistics and Probability','Trigonometry'],
+};
+const PYP_YEARS=['2024','2023','2022','2021','2020','2019','2018','2017','2016','2015'];
+// ═══════════════════════════════════════ SEED ═══
+const SEED={
+  'Physics::Rotational Motion':[
+    {q:"Disc M,R at ω. Mass m at edge. New ω:",opts:["Mω/(M+2m)","Mω/(M+m)","½Mω/(M+m)","2Mω/(M+2m)"],ans:0,exp:"Angular momentum: ½MR²ω=(½MR²+mR²)ω'",chapter:"Rotational Motion",subject:"Physics",_seed:true},
+    {q:"Hollow sphere (M,R) MOI about diameter:",opts:["⅔MR²","⅖MR²","MR²","½MR²"],ans:0,exp:"All mass at surface → I=⅔MR²",chapter:"Rotational Motion",subject:"Physics",_seed:true},
+    {q:"Cylinder rolls without slipping. Rotational KE fraction:",opts:["1/3","1/2","2/3","1/4"],ans:0,exp:"KE_rot=¼mv², KE_total=¾mv²",chapter:"Rotational Motion",subject:"Physics",_seed:true},
+  ],
+  'Physics::Kinematics':[
+    {q:"Ball thrown up with u. Time to max height:",opts:["u/g","2u/g","u/2g","g/u"],ans:0,exp:"v=u-gt=0 → t=u/g",chapter:"Kinematics",subject:"Physics",_seed:true},
+    {q:"Projectile at 45°. R/H ratio:",opts:["4","2","1/2","1/4"],ans:0,exp:"R=u²/g, H=u²/4g → R/H=4",chapter:"Kinematics",subject:"Physics",_seed:true},
+  ],
+  'Physics::Electrostatics':[
+    {q:"E-field inside hollow conducting sphere:",opts:["Zero","σ/ε₀","σ/2ε₀","Varies"],ans:0,exp:"Gauss law: no enclosed charge → E=0",chapter:"Electrostatics",subject:"Physics",_seed:true},
+    {q:"Capacitance doubles when plate distance is:",opts:["Halved","Doubled","Unchanged","Tripled"],ans:0,exp:"C=ε₀A/d; half d → double C",chapter:"Electrostatics",subject:"Physics",_seed:true},
+  ],
+  'Physics::Thermodynamics':[
+    {q:"Carnot efficiency T_c=300K, T_h=500K:",opts:["40%","60%","50%","33%"],ans:0,exp:"η=1-Tc/Th=1-0.6=40%",chapter:"Thermodynamics",subject:"Physics",_seed:true},
+    {q:"Adiabatic process: which is zero?",opts:["Heat Q","Temperature","Pressure","Volume"],ans:0,exp:"Adiabatic → Q=0 by definition",chapter:"Thermodynamics",subject:"Physics",_seed:true},
+  ],
+  'Chemistry::Equilibrium':[
+    {q:"Increasing pressure shifts equilibrium to:",opts:["Fewer gas moles","More gas moles","Higher T","No change"],ans:0,exp:"System reduces pressure by decreasing gas moles",chapter:"Equilibrium",subject:"Chemistry",_seed:true},
+    {q:"Ka=1e-5, C=0.1M weak acid. pH≈",opts:["3","5","7","1"],ans:0,exp:"[H+]=√(Ka·C)=1e-3 → pH=3",chapter:"Equilibrium",subject:"Chemistry",_seed:true},
+  ],
+  'Chemistry::Chemical Bonding':[
+    {q:"Maximum bond angle in:",opts:["BF₃","NH₃","H₂O","PH₃"],ans:0,exp:"BF₃ sp², no lone pairs → 120°",chapter:"Chemical Bonding",subject:"Chemistry",_seed:true},
+    {q:"Sigma bonds in HC≡CH:",opts:["3","2","4","1"],ans:0,exp:"H-C:1σ, C≡C:1σ+2π, C-H:1σ → 3σ total",chapter:"Chemical Bonding",subject:"Chemistry",_seed:true},
+  ],
+  'Mathematics::Integral Calculus':[
+    {q:"∫ x·eˣ dx =",opts:["eˣ(x-1)+C","xeˣ+C","eˣ(x+1)+C","x²eˣ/2+C"],ans:0,exp:"IBP: u=x, dv=eˣdx → eˣ(x-1)+C",chapter:"Integral Calculus",subject:"Mathematics",_seed:true},
+    {q:"lim(x→0) sin(x)/x =",opts:["1","0","∞","π"],ans:0,exp:"Standard fundamental limit = 1",chapter:"Integral Calculus",subject:"Mathematics",_seed:true},
+    {q:"∫₀^π sin x dx =",opts:["2","0","1","π"],ans:0,exp:"[-cosx]₀^π = 1+1 = 2",chapter:"Integral Calculus",subject:"Mathematics",_seed:true},
+  ],
+  'Mathematics::Statistics and Probability':[
+    {q:"Two dice. P(sum=7)=",opts:["1/6","1/4","1/12","5/36"],ans:0,exp:"6 favourable/36 total = 1/6",chapter:"Statistics and Probability",subject:"Mathematics",_seed:true},
+    {q:"P(A∪B): P(A)=0.4, P(B)=0.5, P(A∩B)=0.2",opts:["0.7","0.9","0.5","0.6"],ans:0,exp:"0.4+0.5-0.2=0.7",chapter:"Statistics and Probability",subject:"Mathematics",_seed:true},
+  ],
+  'Mathematics::Coordinate Geometry':[
+    {q:"Circle centre (2,-3) radius 5:",opts:["(x-2)²+(y+3)²=25","(x+2)²+(y-3)²=25","x²+y²=25","(x-2)²+(y-3)²=25"],ans:0,exp:"(x-h)²+(y-k)²=r²",chapter:"Coordinate Geometry",subject:"Mathematics",_seed:true},
+    {q:"Slope of 3x-4y+12=0:",opts:["3/4","4/3","-3/4","-4/3"],ans:0,exp:"y=(3/4)x+3 → slope=3/4",chapter:"Coordinate Geometry",subject:"Mathematics",_seed:true},
+  ],
+};
+function initSeed(){Object.entries(SEED).forEach(([k,qs])=>{if(!S.questDB[k])S.questDB[k]=[];qs.forEach(q=>{if(!S.questDB[k].find(e=>e.q===q.q))S.questDB[k].push(q);});});}
+// ═══════════════════════════════════════ API ═══
+async function ai(sys,usr,tok=1200){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:tok,system:sys,messages:[{role:'user',content:usr}]})});
+  const d=await r.json();return(d.content||[]).map(b=>b.text||'').join('');
+}
+async function aiMs(sys,msgs,tok=1200){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:tok,system:sys,messages:msgs})});
+  const d=await r.json();return(d.content||[]).map(b=>b.text||'').join('');
+}
+
+// ═══════════════════════════════════════ ROBUST JSON PARSER ═══
+// Handles: preamble text, [json] fences, trailing text, partial responses
+function extractJSON(raw) {
+  if (!raw) throw new Error('Empty AI response');
+  
+  // Step 1: strip markdown fences
+  let s = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  
+  // Step 2: try direct parse first
+  try { return JSON.parse(s); } catch(e) {}
+  
+  // Step 3: find first { or [ and last } or ]
+  const firstBrace = s.indexOf('{');
+  const firstBracket = s.indexOf('[');
+  
+  let start = -1, endChar = '';
+  if (firstBracket !== -1 && (firstBrace === -1 || firstBracket < firstBrace)) {
+    start = firstBracket; endChar = ']';
+  } else if (firstBrace !== -1) {
+    start = firstBrace; endChar = '}';
+  }
+  
+  if (start === -1) throw new Error('No JSON found in: ' + s.slice(0, 100));
+  
+  const end = s.lastIndexOf(endChar);
+  if (end === -1 || end <= start) throw new Error('Malformed JSON structure');
+  
+  const extracted = s.slice(start, end + 1);
+  try { return JSON.parse(extracted); } catch(e) {
+    // Step 4: try to fix common issues - trailing commas, unescaped chars
+    const fixed = extracted
+      .replace(/,\s*([}\]])/g, '$1')  // trailing commas
+      .replace(/([^\\])\n/g, '$1\\n') // unescaped newlines inside strings
+      .replace(/([^\\])\t/g, '$1\\t'); // unescaped tabs
+    try { return JSON.parse(fixed); } catch(e2) {
+      throw new Error('JSON parse failed: ' + e2.message + ' | Raw: ' + s.slice(0, 200));
+    }
+  }
+}
+
+// ═══════════════════════════════════════ HELPERS ═══
+function $$(id){return document.getElementById(id);}
+function setHTML(id,h){const e=$$(id);if(e)e.innerHTML=h;}
+function show(id){const e=$$(id);if(e)e.classList.remove('hidden');}
+function hide(id){const e=$$(id);if(e)e.classList.add('hidden');}
+function dbk(s,c){return s+'::'+c;}
+function notif(msg,ok=true){
+  const d=document.createElement('div');
+  d.className='fixed top-4 right-4 z-[9999] px-4 py-3 rounded-xl text-sm font-medium aup shadow-xl '+(ok?'bg-green-500/20 text-green-300 border border-green-500/30':'bg-red-500/20 text-red-300 border border-red-500/30');
+  d.textContent=msg;document.body.appendChild(d);setTimeout(()=>d.remove(),3000);
+}
+function nav(p){S.page=p;render();window.scrollTo(0,0);}
+function logout(){S.user=null;S.page='landing';render();}
+// Build theory context for AI
+function theoryCtx(subject){
+  let c='';
+  Object.entries(S.theoryDB).filter(([k])=>!subject||k.startsWith(subject)).forEach(([k,chunks])=>{
+    c+='\n['+k.replace('::','→')+']:\n'+chunks.slice(0,2).map(x=>x.slice(0,350)).join('\n')+'\n';
+  });
+  return c.slice(0,3500);
+}
+// Admin DB context
+function adminCtx(){
+  let c='=== DOUBTX DATABASE ===\n';
+  c+='Users: '+S.users.length+'\n\nTHEORY:\n';
+  Object.entries(S.theoryDB).forEach(([k,v])=>{c+=k+': '+v.length+' chunks. Sample: "'+v[0]?.slice(0,100)+'..."\n';});
+  c+='\nQUESTIONS:\n';
+  Object.entries(S.questDB).forEach(([k,v])=>{
+    const up=v.filter(q=>!q._seed).length,pyp=v.filter(q=>q.isPYQ).length;
+    c+=k+': '+v.length+' total ('+up+' uploaded, '+pyp+' PYP, '+v.filter(q=>q._seed).length+' seed)\n';
+  });
+  c+='\nPYP:\n';
+  Object.entries(S.pypDB).forEach(([k,v])=>{c+=k+': '+v.length+' questions\n';});
+  c+='\nMISSING (no uploaded content):\n';
+  const mis=[];
+  Object.entries(SYLLABUS).forEach(([s,chs])=>chs.forEach(ch=>{
+    const k=dbk(s,ch);
+    if(!(S.theoryDB[k]||[]).length&&!(S.questDB[k]||[]).filter(q=>!q._seed).length)mis.push(s+'→'+ch);
+  }));
+  c+=mis.slice(0,15).join(', ')+(mis.length>15?' +more':'');
+  return c;
+}
+// ═══════════════════════════════════════ AUTH ═══
+function doLogin(e,p){
+  const u=S.users.find(u=>u.email===e&&u.phash===btoa(p));
+  if(!u){notif('Invalid credentials',false);return;}
+  S.user={...u};closeAuth();nav(u.role==='admin'?'admin':'dashboard');
+}
+function doSignup(n,e,p,code){
+  if(!n||!e||!p){notif('Fill all fields',false);return;}
+  if(S.users.find(u=>u.email===e)){notif('Email already used',false);return;}
+  const role=code===ADMIN_CODE?'admin':'student';
+  const u={uid:'u'+Date.now(),name:n,email:e,phash:btoa(p),role,joined:new Date().toISOString()};
+  S.users.push(u);S.user={...u};dbSave();closeAuth();
+  notif('Welcome, '+n+'!');nav(role==='admin'?'admin':'dashboard');
+}
+// ═══════════════════════════════════════ TOPBAR ═══
+function topBar(title,back='dashboard'){
+  const ia=S.user?.role==='admin';
+  return `<nav class="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/60">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button onclick="nav('${back}')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center font-bold text-sm">D</div>
+        <span class="font-bold text-lg">${title}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-slate-400 hidden sm:block">${S.user?.name||''}</span>
+        ${ia&&S.page!=='admin'?'<button onclick="nav(\'admin\')" class="px-3 py-1.5 bg-orange-500/20 border border-orange-500/40 text-orange-300 rounded-lg text-xs hover:bg-orange-500/30 transition-all flex items-center gap-1"><i data-lucide="shield" class="w-3 h-3"></i> Admin</button>':''}
+        <button onclick="logout()" class="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs hover:bg-slate-700">Logout</button>
+      </div>
+    </div>
+  </nav>`;
+}
+// ═══════════════════════════════════════ LANDING ═══
+function renderLanding(){
+  return `<div class="min-h-screen bg-slate-950">
+    <nav class="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/50">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center font-black text-lg">D</div>
+          <span class="text-xl font-black bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">DoubtX</span>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="openAuth('login')" class="px-5 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-all">Login</button>
+          <button onclick="openAuth('signup')" class="px-5 py-2 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl font-semibold text-white hover:opacity-90">Sign Up</button>
+        </div>
+      </div>
+    </nav>
+    <section class="relative px-4 py-24 text-center max-w-7xl mx-auto">
+      <div class="absolute inset-0 pointer-events-none overflow-hidden">
+        <div class="absolute top-10 left-1/4 w-80 h-80 bg-blue-500/8 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-10 right-1/4 w-80 h-80 bg-violet-500/8 rounded-full blur-3xl"></div>
+      </div>
+      <div class="relative">
+        <div class="inline-flex items-center gap-2 bg-slate-800/60 border border-slate-700/50 rounded-full px-4 py-1.5 mb-6 text-sm"><span class="w-2 h-2 rounded-full bg-green-400 pdot"></span> Claude AI • Persistent Database • JEE 2025</div>
+        <h1 class="text-6xl sm:text-7xl font-black mb-4 bg-gradient-to-r from-white via-blue-100 to-violet-200 bg-clip-text text-transparent leading-tight">DoubtX</h1>
+        <p class="text-lg text-slate-400 max-w-2xl mx-auto mb-10">AI doubt solving · NTA CBT · PYP practice · YouTube quiz · Admin content database with AI chatbot</p>
+        <div class="flex flex-wrap justify-center gap-4">
+          <button onclick="openAuth('signup')" class="px-8 py-3.5 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl font-bold text-white hover:opacity-90 glow-b">Start for Free</button>
+          <button onclick="openAuth('login')" class="px-8 py-3.5 bg-slate-800 border border-slate-700 rounded-xl font-semibold text-slate-200 hover:bg-slate-700">Login</button>
+        </div>
+      </div>
+    </section>
+    <section class="px-4 py-12 max-w-6xl mx-auto">
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        ${[['sparkles','blue','AI Doubt Solver','Ask any JEE doubt — AI answers using your uploaded study material'],
+           ['monitor','violet','CBT Practice','NTA-style interface + AI explanation after every answer'],
+           ['youtube','red','YouTube + Quiz','Watch ad-free + AI generates 30 questions from the video'],
+           ['file-text','cyan','PYP Practice','Previous year papers by year & subject from admin uploads'],
+           ['zap','green','Smart Mock Generator','Chapter-wise mocks from DB + AI-generated questions'],
+           ['bot','orange','Admin AI Chatbot','Admin chatbot knows all uploaded content — query, analyze, generate'],
+        ].map(([i,c,t,d])=>`<div class="bg-slate-800/30 border border-slate-700/50 rounded-xl p-6 hover:border-${c}-500/40 transition-all">
+          <div class="w-11 h-11 rounded-xl bg-${c}-500/15 flex items-center justify-center mb-4"><i data-lucide="${i}" class="w-5 h-5 text-${c}-400"></i></div>
+          <h3 class="font-semibold mb-1.5">${t}</h3><p class="text-sm text-slate-400">${d}</p></div>`).join('')}
+      </div>
+    </section>
+  </div>
+  <div id="auth-modal" class="hidden fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target.id==='auth-modal')closeAuth()">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-8 aup">
+      <div class="flex justify-between items-center mb-6">
+        <h2 id="auth-title" class="text-2xl font-bold"></h2>
+        <button onclick="closeAuth()" class="text-slate-400 hover:text-white p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div id="auth-body"></div>
+    </div>
+  </div>`;
+}
+let _am='login';
+function openAuth(m){_am=m;show('auth-modal');renderAuth();lucide.createIcons();}
+function closeAuth(){hide('auth-modal');}
+function renderAuth(){
+  $$('auth-title').textContent=_am==='login'?'Login':'Create Account';
+  if(_am==='login'){
+    setHTML('auth-body',`<div class="space-y-4">
+      <input id="li-e" type="email" placeholder="Email">
+      <input id="li-p" type="password" placeholder="Password">
+      <button onclick="doLogin($$('li-e').value,$$('li-p').value)" class="w-full py-3 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl font-semibold text-white hover:opacity-90">Login</button>
+      <p class="text-center text-sm text-slate-400">No account? <button onclick="_am='signup';renderAuth()" class="text-blue-400 hover:underline">Sign Up</button></p>
+      <p class="text-center text-xs text-slate-500">Admin? <button onclick="_am='signup';renderAuth()" class="text-orange-400 font-semibold hover:underline">Sign up with admin code</button></p>
+    </div>`);
+  } else {
+    setHTML('auth-body',`<div class="space-y-4">
+      <input id="su-n" type="text" placeholder="Full Name">
+      <input id="su-e" type="email" placeholder="Email">
+      <input id="su-p" type="password" placeholder="Password">
+      <div>
+        <input id="su-a" type="password" placeholder="Admin code (optional)">
+        <p class="text-xs text-slate-500 mt-1">Admin code = <strong class="text-orange-400">ADMIN2024</strong> → unlocks content upload, AI chatbot & DB</p>
+      </div>
+      <button onclick="doSignup($$('su-n').value,$$('su-e').value,$$('su-p').value,$$('su-a').value)" class="w-full py-3 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl font-semibold text-white hover:opacity-90">Sign Up</button>
+      <p class="text-center text-sm text-slate-400">Have account? <button onclick="_am='login';renderAuth()" class="text-blue-400 hover:underline">Login</button></p>
+    </div>`);
+  }
+}
+// ═══════════════════════════════════════ DASHBOARD ═══
+function renderDashboard(){
+  const ia=S.user?.role==='admin';
+  const tq=Object.values(S.questDB).reduce((a,v)=>a+v.length,0);
+  const tt=Object.values(S.theoryDB).reduce((a,v)=>a+v.length,0);
+  const cards=[
+    ['doubt-solver','blue','sparkles','AI Doubt Solver','Ask any JEE doubt — AI uses your uploaded study material'],
+    ['cbt','violet','monitor','CBT Practice','NTA-style chapter-wise MCQs with AI explanation'],
+    ['youtube','red','youtube','YouTube + Quiz','Watch ad-free + AI generates 30 topic questions'],
+    ['pyp','cyan','file-text','PYP Practice','Previous year papers by year & subject'],
+    ['mock','green','zap','Smart Mock Generator','Chapter-wise mocks from DB + AI generation'],
+  ];
+  if(ia) cards.push(['admin','orange','shield','Admin Panel','Upload PDFs, AI chatbot, manage content DB']);
+  return `<div class="min-h-screen bg-slate-950">
+    <nav class="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/60">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center font-black">D</div>
+          <span class="font-black text-lg bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">DoubtX</span>
+          ${ia?'<span class="pill bg-orange-500/20 text-orange-300 border border-orange-500/30">Admin</span>':''}
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-slate-300 hidden sm:block">Hi, ${S.user.name}</span>
+          ${ia?'<button onclick="nav(\'admin\')" class="px-3 py-1.5 bg-orange-500/20 border border-orange-500/40 text-orange-300 rounded-lg text-xs hover:bg-orange-500/30 flex items-center gap-1"><i data-lucide="shield" class="w-3 h-3"></i> Admin</button>':''}
+          <button onclick="logout()" class="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs hover:bg-slate-700">Logout</button>
+        </div>
+      </div>
+    </nav>
+    <section class="px-4 py-10 max-w-6xl mx-auto">
+      <div class="flex items-start justify-between mb-8">
+        <div><h1 class="text-3xl font-bold mb-1">Dashboard</h1><p class="text-slate-400">AI-powered JEE 2025 preparation</p></div>
+        <div class="hidden sm:flex gap-3">
+          <div class="text-center bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2"><p class="text-xs text-slate-400">Questions</p><p class="text-xl font-bold text-green-400">${tq}</p></div>
+          <div class="text-center bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2"><p class="text-xs text-slate-400">Theory</p><p class="text-xl font-bold text-violet-400">${tt}</p></div>
+        </div>
+      </div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        ${cards.map(([page,c,icon,title,desc])=>`<div class="gb cursor-pointer hover:scale-[1.01] transition-transform" onclick="nav('${page}')">
+          <div class="p-6 flex flex-col h-full">
+            <div class="w-11 h-11 rounded-xl bg-${c}-500/20 flex items-center justify-center mb-4"><i data-lucide="${icon}" class="w-5 h-5 text-${c}-400"></i></div>
+            <h2 class="text-xl font-bold mb-2">${title}</h2>
+            <p class="text-slate-400 text-sm flex-1">${desc}</p>
+            <div class="mt-4 text-${c}-400 text-sm font-semibold flex items-center gap-2">Open <i data-lucide="arrow-right" class="w-4 h-4"></i></div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </section>
+  </div>`;
+}
+// ═══════════════════════════════════════ ADMIN ═══
+let adminChat=[];
+function renderAdmin(){
+  const tt=Object.values(S.theoryDB).reduce((a,v)=>a+v.length,0);
+  const tq=Object.values(S.questDB).reduce((a,v)=>a+v.length,0);
+  const tp=Object.values(S.pypDB).reduce((a,v)=>a+v.length,0);
+  const dbsz=(JSON.stringify({t:S.theoryDB,q:S.questDB,p:S.pypDB}).length/1024).toFixed(1);
+  return `<div class="min-h-screen bg-slate-950">
+    ${topBar('Admin Panel')}
+    <section class="px-4 py-6 max-w-7xl mx-auto">
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+        ${[['Users',S.users.length,'blue'],['Theory Chunks',tt,'violet'],['Questions',tq,'green'],['PYP Qs',tp,'cyan'],['DB Size',dbsz+'KB','orange']].map(([l,v,c])=>`
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-3 text-center">
+          <p class="text-xs text-slate-400 mb-1">${l}</p><p class="text-2xl font-bold text-${c}-400">${v}</p>
+        </div>`).join('')}
+      </div>
+      <div class="flex gap-2 mb-6 flex-wrap">
+        ${[['content','📄 Upload Material'],['pyp','📋 Upload PYP'],['chatbot','🤖 AI Chatbot'],['view','👁 View DB'],['users','👥 Users'],['settings','⚙️ Settings']].map(([id,lbl],i)=>`
+        <button onclick="aTab('${id}')" id="atab-${id}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all ${i===0?'tab-on':'tab-off'}">${lbl}</button>`).join('')}
+      </div>
+
+      <!-- UPLOAD MATERIAL -->
+      <div id="apanel-content">
+        <div class="grid lg:grid-cols-2 gap-6">
+          <div class="gb"><div class="p-6">
+            <h3 class="font-bold text-lg mb-1">Upload Study Material</h3>
+            <p class="text-sm text-slate-400 mb-4">AI separates theory from questions, tags by subject & chapter, stores in persistent localStorage DB.</p>
+            <div class="grid sm:grid-cols-2 gap-3 mb-4">
+              <div><label class="text-xs text-slate-400 mb-1 block">Subject</label>
+                <select id="adm-sub" onchange="admChaps()" class="w-full">${Object.keys(SYLLABUS).map(s=>`<option>${s}</option>`).join('')}</select></div>
+              <div><label class="text-xs text-slate-400 mb-1 block">Chapter</label>
+                <select id="adm-chap" class="w-full"><option value="auto">🤖 Auto-detect</option>${SYLLABUS.Physics.map(c=>`<option>${c}</option>`).join('')}</select></div>
+            </div>
+            <div id="adm-drop" class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-violet-500/60 transition-all cursor-pointer mb-4"
+              ondragover="event.preventDefault();this.classList.add('drop-active')" ondragleave="this.classList.remove('drop-active')"
+              ondrop="admDrop(event)" onclick="$$('adm-file').click()">
+              <i data-lucide="upload-cloud" class="w-10 h-10 mx-auto text-slate-500 mb-3"></i>
+              <p class="text-slate-400 text-sm">Drop PDF/TXT or click to browse</p>
+              <p class="text-slate-600 text-xs mt-1">Notes, DPPs, question banks</p>
+              <input id="adm-file" type="file" accept=".pdf,.txt,.md" class="hidden" onchange="admFile(this)">
+            </div>
+            <div id="adm-fn" class="hidden mb-3 px-3 py-2 bg-violet-500/10 border border-violet-500/20 rounded-lg text-sm text-violet-300 flex items-center gap-2">
+              <i data-lucide="file-check" class="w-4 h-4"></i><span id="adm-fname"></span></div>
+            <label class="text-xs text-slate-400 mb-1 block">Or paste content</label>
+            <textarea id="adm-text" rows="6" placeholder="Paste chapter notes, DPP questions, or mixed content..." class="resize-none mb-4"></textarea>
+            <button onclick="admProcess()" class="w-full py-3 bg-gradient-to-r from-violet-600 to-blue-600 rounded-xl font-bold text-white hover:opacity-90 glow-v flex items-center justify-center gap-2">
+              <i data-lucide="sparkles" class="w-5 h-5"></i> Process & Save to Database
+            </button>
+            <div id="adm-loading" class="hidden text-center py-8"><div class="spinner mx-auto mb-3"></div><p class="text-slate-400 text-sm">AI segregating content & saving...</p></div>
+            <div id="adm-result" class="hidden mt-4 aup"></div>
+          </div></div>
+          <div class="space-y-4">
+            <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+              <h3 class="font-semibold mb-3 text-violet-400 flex items-center gap-2"><i data-lucide="database" class="w-4 h-4"></i> Theory Database (${tt} chunks)</h3>
+              <div class="space-y-2 max-h-48 overflow-y-auto">
+                ${Object.entries(S.theoryDB).length?Object.entries(S.theoryDB).map(([k,v])=>`
+                  <div class="flex justify-between items-center p-2 bg-slate-900 rounded-lg text-sm cursor-pointer hover:bg-slate-800" onclick="admPrev(this.dataset.k)" data-k="${k}">
+                    <span class="text-slate-300 truncate flex-1">${k.replace('::',' → ')}</span>
+                    <span class="pill bg-violet-500/20 text-violet-300 ml-2">${v.length}</span>
+                  </div>`).join(''):'<p class="text-slate-500 text-sm text-center py-4">No theory uploaded yet</p>'}
+              </div>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+              <h3 class="font-semibold mb-3 text-green-400 flex items-center gap-2"><i data-lucide="help-circle" class="w-4 h-4"></i> Question Database</h3>
+              <div class="space-y-2 max-h-48 overflow-y-auto">
+                ${Object.entries(S.questDB).map(([k,v])=>{const up=v.filter(q=>!q._seed).length;if(!up)return '';return `
+                  <div class="flex justify-between items-center p-2 bg-slate-900 rounded-lg text-sm">
+                    <span class="text-slate-300 truncate flex-1">${k.replace('::',' → ')}</span>
+                    <span class="pill bg-green-500/20 text-green-300 ml-2">${up} Qs</span>
+                  </div>`;}).join('')||'<p class="text-slate-500 text-sm text-center py-4">No questions uploaded yet</p>'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPLOAD PYP -->
+      <div id="apanel-pyp" class="hidden">
+        <div class="gb max-w-3xl"><div class="p-6">
+          <h3 class="font-bold text-lg mb-1">Upload Previous Year Paper</h3>
+          <p class="text-sm text-slate-400 mb-4">AI extracts all MCQs with answers, tags by subject & chapter, stores under selected year.</p>
+          <div class="grid sm:grid-cols-3 gap-3 mb-4">
+            <div><label class="text-xs text-slate-400 mb-1 block">Year</label><select id="pyp-year" class="w-full">${PYP_YEARS.map(y=>`<option>${y}</option>`).join('')}</select></div>
+            <div><label class="text-xs text-slate-400 mb-1 block">Exam</label><select id="pyp-exam" class="w-full"><option>JEE Main</option><option>JEE Advanced</option></select></div>
+            <div><label class="text-xs text-slate-400 mb-1 block">Session</label><select id="pyp-sess" class="w-full"><option>Session 1</option><option>Session 2</option><option>Full Paper</option></select></div>
+          </div>
+          <textarea id="pyp-text" rows="8" placeholder="Paste the full question paper here. AI extracts all MCQs with options and correct answers..." class="resize-none mb-4"></textarea>
+          <button onclick="admPYP()" class="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl font-bold text-white hover:opacity-90 flex items-center justify-center gap-2">
+            <i data-lucide="file-text" class="w-5 h-5"></i> Extract & Store PYP
+          </button>
+          <div id="pyp-loading" class="hidden text-center py-8"><div class="spinner mx-auto mb-3"></div><p class="text-slate-400 text-sm">Extracting questions...</p></div>
+          <div id="pyp-result" class="hidden mt-4 aup"></div>
+        </div></div>
+        <div class="mt-6 bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 max-w-3xl">
+          <h3 class="font-semibold mb-3 text-cyan-400">PYP Database</h3>
+          <div class="flex flex-wrap gap-2">
+            ${Object.entries(S.pypDB).length?Object.entries(S.pypDB).map(([k,v])=>`<span class="pill bg-cyan-500/15 border border-cyan-500/30 text-cyan-300">${k.replace('::',' ')} — ${v.length} Qs</span>`).join(''):'<p class="text-slate-500 text-sm">No PYP uploaded yet</p>'}
+          </div>
+        </div>
+      </div>
+
+      <!-- AI CHATBOT -->
+      <div id="apanel-chatbot" class="hidden">
+        <div class="max-w-4xl">
+          <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden flex flex-col" style="height:580px;">
+            <div class="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between bg-slate-900/50">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center"><i data-lucide="bot" class="w-5 h-5 text-white"></i></div>
+                <div>
+                  <p class="font-semibold text-sm">DoubtX Admin AI</p>
+                  <p class="text-xs text-slate-400">Connected to DB — ${tt} theory chunks · ${tq} questions · ${tp} PYP Qs</p>
+                </div>
+              </div>
+              <button onclick="adminChat=[];initChatUI()" class="text-xs text-slate-500 hover:text-slate-300 px-3 py-1 border border-slate-700 rounded-lg">Clear</button>
+            </div>
+            <div id="ac-msgs" class="flex-1 overflow-y-auto p-5 flex flex-col gap-3"></div>
+            <div class="px-4 py-2 border-t border-slate-800 flex gap-2 overflow-x-auto">
+              ${['Which chapters have no content?','DB summary','Generate 5 Optics MCQs','List PYP years','Physics theory gaps'].map(q=>`<button onclick="acQuick(this.dataset.q)" data-q="${q}" class="flex-shrink-0 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 hover:border-blue-500 hover:text-blue-300 transition-all">${q}</button>`).join('')}
+            </div>
+            <div class="px-4 py-3 border-t border-slate-700/50 flex gap-3 bg-slate-900/30">
+              <input id="ac-in" type="text" placeholder="Ask about your DB, request analytics, or generate content..." class="flex-1 py-2.5 px-4 rounded-xl text-sm" onkeydown="if(event.key==='Enter')acSend()">
+              <button onclick="acSend()" class="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-blue-600 rounded-xl text-sm font-semibold text-white hover:opacity-90 flex-shrink-0 flex items-center gap-2"><i data-lucide="send" class="w-4 h-4"></i> Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW DB -->
+      <div id="apanel-view" class="hidden">
+        <div class="grid lg:grid-cols-3 gap-5 mb-5">
+          <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+            <h3 class="font-semibold mb-3 text-violet-400">Theory (${tt} chunks)</h3>
+            <div class="space-y-2 max-h-72 overflow-y-auto">
+              ${Object.entries(S.theoryDB).length?Object.entries(S.theoryDB).map(([k,v])=>`
+                <div class="p-2.5 bg-slate-900 rounded-lg cursor-pointer hover:bg-slate-800" onclick="admPrev(this.dataset.k)" data-k="${k}">
+                  <div class="flex justify-between"><span class="text-sm text-slate-300 truncate flex-1">${k.replace('::',' → ')}</span><span class="pill bg-violet-500/20 text-violet-300 ml-2">${v.length}</span></div>
+                  <p class="text-xs text-slate-500 mt-1 truncate">${(v[0]||'').slice(0,60)}...</p>
+                </div>`).join(''):'<p class="text-slate-500 text-sm text-center py-6">No theory uploaded</p>'}
+            </div>
+          </div>
+          <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+            <h3 class="font-semibold mb-3 text-green-400">Questions (${tq})</h3>
+            <div class="space-y-2 max-h-72 overflow-y-auto">
+              ${Object.entries(S.questDB).map(([k,v])=>{
+                const up=v.filter(q=>!q._seed).length,pyp=v.filter(q=>q.isPYQ).length,seed=v.filter(q=>q._seed).length;
+                return `<div class="p-2.5 bg-slate-900 rounded-lg">
+                  <div class="flex justify-between"><span class="text-sm text-slate-300 truncate flex-1">${k.replace('::',' → ')}</span><span class="pill bg-green-500/20 text-green-300 ml-2">${v.length}</span></div>
+                  <div class="flex gap-1 mt-1">
+                    ${seed?`<span class="pill" style="background:rgba(100,116,139,.15);color:#94a3b8;padding:.1rem .4rem;font-size:.6rem">${seed} seed</span>`:''}
+                    ${up-pyp>0?`<span class="pill bg-green-500/15 text-green-400" style="padding:.1rem .4rem;font-size:.6rem">${up-pyp} upload</span>`:''}
+                    ${pyp?`<span class="pill bg-cyan-500/15 text-cyan-400" style="padding:.1rem .4rem;font-size:.6rem">${pyp} PYP</span>`:''}
+                  </div>
+                </div>`;}).join('')}
+            </div>
+          </div>
+          <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+            <h3 class="font-semibold mb-3 text-cyan-400">PYP Papers (${tp} Qs)</h3>
+            <div class="space-y-2 max-h-72 overflow-y-auto">
+              ${Object.entries(S.pypDB).length?Object.entries(S.pypDB).map(([k,v])=>`
+                <div class="p-2.5 bg-slate-900 rounded-lg">
+                  <div class="flex justify-between"><span class="text-sm text-slate-300">${k.replace('::',' ')}</span><span class="pill bg-cyan-500/20 text-cyan-300">${v.length} Qs</span></div>
+                  <p class="text-xs text-slate-500 mt-1 truncate">${[...new Set(v.map(q=>q.chapter))].slice(0,3).join(', ')}</p>
+                </div>`).join(''):'<p class="text-slate-500 text-sm text-center py-6">No PYP uploaded</p>'}
+            </div>
+          </div>
+        </div>
+        <div id="adm-prev" class="hidden bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 aup">
+          <div class="flex justify-between items-center mb-3">
+            <h3 id="adm-prev-title" class="font-semibold text-slate-200"></h3>
+            <button onclick="hide('adm-prev')" class="text-slate-500 hover:text-slate-300 text-xs">✕ Close</button>
+          </div>
+          <div id="adm-prev-body" class="prose max-h-60 overflow-y-auto text-sm"></div>
+        </div>
+      </div>
+
+      <!-- USERS -->
+      <div id="apanel-users" class="hidden">
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-900 border-b border-slate-700"><tr>
+              <th class="text-left p-4">Name</th><th class="text-left p-4">Email</th><th class="text-left p-4">Role</th><th class="text-left p-4">Joined</th>
+            </tr></thead>
+            <tbody>${S.users.map(u=>`<tr class="border-b border-slate-800/60 hover:bg-slate-800/30">
+              <td class="p-4">${u.name}</td><td class="p-4 text-slate-400">${u.email}</td>
+              <td class="p-4"><span class="pill ${u.role==='admin'?'bg-orange-500/20 text-orange-300':'bg-blue-500/20 text-blue-300'}">${u.role}</span></td>
+              <td class="p-4 text-slate-500 text-xs">${new Date(u.joined).toLocaleDateString()}</td>
+            </tr>`).join('')}</tbody>
+          </table>
+          ${!S.users.length?'<p class="text-center text-slate-500 py-8 text-sm">No users yet</p>':''}
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div id="apanel-settings" class="hidden">
+        <div class="max-w-xl space-y-4">
+          <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+            <h3 class="font-semibold mb-1">Export Database</h3>
+            <p class="text-sm text-slate-400 mb-3">Download full database as JSON backup.</p>
+            <button onclick="admExport()" class="px-5 py-2.5 bg-blue-500/20 border border-blue-500/30 text-blue-300 rounded-xl text-sm font-medium hover:bg-blue-500/30 flex items-center gap-2"><i data-lucide="download" class="w-4 h-4"></i> Export JSON</button>
+          </div>
+          <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+            <h3 class="font-semibold mb-1">Import Database</h3>
+            <p class="text-sm text-slate-400 mb-3">Restore from a JSON backup file.</p>
+            <input type="file" id="import-file" accept=".json" class="hidden" onchange="admImport(this)">
+            <button onclick="$$('import-file').click()" class="px-5 py-2.5 bg-violet-500/20 border border-violet-500/30 text-violet-300 rounded-xl text-sm font-medium hover:bg-violet-500/30 flex items-center gap-2"><i data-lucide="upload" class="w-4 h-4"></i> Import JSON</button>
+          </div>
+          <div class="bg-red-500/10 border border-red-500/20 rounded-xl p-5">
+            <h3 class="font-semibold mb-1 text-red-400">Danger Zone</h3>
+            <p class="text-sm text-slate-400 mb-3">Clear all uploaded content (seed questions remain).</p>
+            <button onclick="if(confirm('Clear all uploaded content?'))admClear()" class="px-5 py-2.5 bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl text-sm font-medium hover:bg-red-500/30 flex items-center gap-2"><i data-lucide="trash-2" class="w-4 h-4"></i> Clear Uploads</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>`;
+}
+function aTab(t){
+  ['content','pyp','chatbot','view','users','settings'].forEach(id=>{
+    const b=$$('atab-'+id),p=$$('apanel-'+id);
+    if(b)b.className='px-4 py-2 rounded-lg text-sm font-medium transition-all '+(id===t?'tab-on':'tab-off');
+    if(p)p.classList.toggle('hidden',id!==t);
+  });
+  if(t==='chatbot')initChatUI();
+}
+function initChatUI(){
+  const m=$$('ac-msgs');if(!m)return;
+  if(!adminChat.length){
+    m.innerHTML=`<div class="chat-ai"><strong>👋 Admin AI connected to your database!</strong><br><br>
+    I can see everything in your DoubtX DB. Try asking:<br>
+    • "Which chapters have no content?"<br>
+    • "Generate 5 Optics MCQs and add to DB"<br>
+    • "Summarize the Thermodynamics theory we have"<br>
+    • "List all PYP years available"<br>
+    • "What's the DB breakdown by subject?"</div>`;
+  }
+}
+function acQuick(q){const i=$$('ac-in');if(i)i.value=typeof q==='string'?q:(q||'');acSend();}
+async function acSend(){
+  const inp=$$('ac-in'),msg=(inp?.value||'').trim();
+  if(!msg)return; inp.value='';
+  const m=$$('ac-msgs');
+  const ub=document.createElement('div');ub.className='chat-user';ub.textContent=msg;m.appendChild(ub);
+  const sb=document.createElement('div');sb.className='chat-ai';sb.innerHTML='<span class="sm-spin"></span>';m.appendChild(sb);
+  m.scrollTop=m.scrollHeight;
+  adminChat.push({role:'user',content:msg});
+  try{
+    const resp=await aiMs(
+      `You are the DoubtX Admin AI with FULL access to the content database. Current DB state:
+
+${adminCtx()}
+
+Capabilities:
+1. Answer database queries
+2. Analyze content gaps
+3. Generate MCQs to add to DB — output at end: <ADD_QUESTIONS>[{"q":"...","opts":["A","B","C","D"],"ans":0,"exp":"...","chapter":"exact name","subject":"Physics/Chemistry/Mathematics"}]</ADD_QUESTIONS>
+4. Generate theory to add: <ADD_THEORY>{"chapter":"exact name","subject":"Physics","content":"text"}</ADD_THEORY>
+5. Provide analytics & recommendations
+
+Be concise, use markdown-style formatting with **bold** for emphasis.`,
+      adminChat, 1800
+    );
+    let display=resp;
+    const qm=resp.match(/<ADD_QUESTIONS>([\s\S]*?)<\/ADD_QUESTIONS>/);
+    const tm=resp.match(/<ADD_THEORY>([\s\S]*?)<\/ADD_THEORY>/);
+    if(qm){try{
+      const qs=extractJSON(qm[1]);
+      qs.forEach(q=>{const k=dbk(q.subject||'Physics',q.chapter||'Unknown');if(!S.questDB[k])S.questDB[k]=[];S.questDB[k].push({...q,_aiGen:true});});
+      dbSave();display=resp.replace(/<ADD_QUESTIONS>[\s\S]*?<\/ADD_QUESTIONS>/,'').trim()+'\n\n✅ **'+qs.length+' questions added to DB!**';
+    }catch(e){}}
+    if(tm){try{
+      const t=extractJSON(tm[1]);const k=dbk(t.subject||'Physics',t.chapter||'Unknown');
+      if(!S.theoryDB[k])S.theoryDB[k]=[];S.theoryDB[k].push(t.content);
+      dbSave();display=resp.replace(/<ADD_THEORY>[\s\S]*?<\/ADD_THEORY>/,'').trim()+'\n\n✅ **Theory added for '+t.chapter+'!**';
+    }catch(e){}}
+    adminChat.push({role:'assistant',content:resp});
+    sb.innerHTML=display.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+    m.scrollTop=m.scrollHeight;
+  }catch(e){sb.innerHTML='<span style="color:#f87171">Connection error. Try again.</span>';}
+}
+function admChaps(){
+  const sub=$$('adm-sub')?.value||'Physics',sel=$$('adm-chap');if(!sel)return;
+  sel.innerHTML='<option value="auto">🤖 Auto-detect</option>'+SYLLABUS[sub].map(c=>`<option>${c}</option>`).join('');
+}
+function admDrop(e){e.preventDefault();$$('adm-drop').classList.remove('drop-active');const f=e.dataTransfer.files[0];if(f)admRead(f);}
+function admFile(i){if(i.files[0])admRead(i.files[0]);}
+function admRead(f){const r=new FileReader();r.onload=()=>{$$('adm-text').value=r.result;setHTML('adm-fname',f.name);show('adm-fn');notif('Loaded: '+f.name);};r.readAsText(f);}
+async function admProcess(){
+  const sub=$$('adm-sub')?.value||'Physics',chap=$$('adm-chap')?.value||'auto',text=($$('adm-text')?.value||'').trim();
+  if(!text){notif('Paste content or upload a file',false);return;}
+  hide('adm-result');show('adm-loading');
+  try{
+    const raw=await ai(
+      `You are a JEE expert educator. Analyze this study material:
+1. SEPARATE theory explanations from MCQ questions
+2. Auto-detect which JEE chapter(s) each part belongs to
+3. For questions extract: text, 4 options, correct answer index (0-3), explanation
+CRITICAL: Return ONLY raw JSON starting with { or [. No preamble, no markdown:
+{"detectedChapters":["name"],"theory":[{"chapter":"name","subject":"${sub}","content":"text"}],"questions":[{"chapter":"name","subject":"${sub}","q":"text","opts":["A","B","C","D"],"ans":0,"exp":"text"}]}`,
+      `Subject: ${sub}\nChapter hint: ${chap==='auto'?'auto-detect':chap}\n\n${text.slice(0,7000)}`, 2500
+    );
+    const d=extractJSON(raw);
+    (d.theory||[]).forEach(t=>{const k=dbk(t.subject||sub,t.chapter||chap);if(!S.theoryDB[k])S.theoryDB[k]=[];S.theoryDB[k].push(t.content);});
+    (d.questions||[]).forEach(q=>{const k=dbk(q.subject||sub,q.chapter||chap);if(!S.questDB[k])S.questDB[k]=[];S.questDB[k].push({...q,isPYQ:false});});
+    dbSave();hide('adm-loading');show('adm-result');
+    setHTML('adm-result',`<div class="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
+      <p class="text-green-300 font-semibold mb-2">✓ Saved to localStorage database!</p>
+      <p class="text-sm text-slate-300">Chapters: <strong>${(d.detectedChapters||[chap]).join(', ')}</strong></p>
+      <p class="text-sm text-slate-300">Theory chunks: <strong>${(d.theory||[]).length}</strong></p>
+      <p class="text-sm text-slate-300">Questions: <strong>${(d.questions||[]).length}</strong></p>
+      <p class="text-xs text-slate-500 mt-2">✓ Persists across sessions · Available in CBT, Mock & Doubt Solver</p>
+    </div>`);
+    $$('adm-text').value='';hide('adm-fn');notif('Saved: '+(d.theory||[]).length+' theory + '+(d.questions||[]).length+' questions');
+  }catch(e){
+    hide('adm-loading');
+    const msg = e.message||'Unknown error';
+    // Show what the AI actually returned so we can debug
+    show('adm-result');
+    setHTML('adm-result',`<div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+      <p class="text-red-300 font-semibold mb-2">✗ Processing failed</p>
+      <p class="text-sm text-slate-300 mb-2">${msg}</p>
+      <p class="text-xs text-slate-500">Tip: Make sure your content is readable text. If the AI returned unexpected output, try pasting less content at once.</p>
+    </div>`);
+    notif('Processing failed — see details below', false);
+  }
+}
+async function admPYP(){
+  const year=$$('pyp-year')?.value,exam=$$('pyp-exam')?.value,sess=$$('pyp-sess')?.value;
+  const text=($$('pyp-text')?.value||'').trim();if(!text){notif('Paste the paper first',false);return;}
+  hide('pyp-result');show('pyp-loading');
+  try{
+    const raw=await ai(
+      `JEE expert. Extract ALL MCQs from this ${exam} ${year} paper. Detect subject, chapter (from JEE syllabus), question, 4 options, correct answer index (0-3), explanation.
+CRITICAL: Return ONLY the raw JSON array starting with [. No explanation, no markdown, no text before or after the JSON:
+[{"subject":"Physics","chapter":"Kinematics","q":"...","opts":["A","B","C","D"],"ans":0,"exp":"...","year":"${year}","exam":"${exam}"}]`,
+      `${exam} ${year} ${sess}:\n${text.slice(0,9000)}`, 2500
+    );
+    const qs=extractJSON(raw);
+    qs.forEach(q=>{
+      const pk=`${q.subject||'Physics'}::${year}`;if(!S.pypDB[pk])S.pypDB[pk]=[];S.pypDB[pk].push({...q,isPYQ:true});
+      const ck=dbk(q.subject||'Physics',q.chapter||'Unknown');if(!S.questDB[ck])S.questDB[ck]=[];S.questDB[ck].push({...q,isPYQ:true});
+    });
+    dbSave();hide('pyp-loading');show('pyp-result');
+    setHTML('pyp-result',`<div class="p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-xl">
+      <p class="text-cyan-300 font-semibold">✓ ${qs.length} questions extracted & saved!</p>
+      <p class="text-sm text-slate-300 mt-1">${exam} ${year} ${sess} → available in PYP Practice for students</p>
+    </div>`);
+    $$('pyp-text').value='';notif(qs.length+' PYP questions saved!');
+  }catch(e){
+    hide('pyp-loading');
+    show('pyp-result');
+    setHTML('pyp-result',`<div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+      <p class="text-red-300 font-semibold">✗ Extraction failed: ${e.message||'Unknown error'}</p>
+      <p class="text-xs text-slate-500 mt-1">Try pasting a smaller portion of the paper, or make sure it contains clear MCQ questions with options.</p>
+    </div>`);
+    notif('PYP extraction failed', false);
+  }
+}
+function admPrev(k){
+  const chunks=S.theoryDB[k]||[];
+  setHTML('adm-prev-title',k.replace('::',' → ')+' ('+chunks.length+' chunks)');
+  setHTML('adm-prev-body',chunks.map((c,i)=>`<div class="mb-3 p-3 bg-slate-900 rounded-lg"><p class="text-xs text-slate-500 mb-1">Chunk ${i+1}</p><p class="text-slate-300 text-sm">${c.slice(0,500)}${c.length>500?'...':''}</p></div>`).join(''));
+  show('adm-prev');
+}
+function admExport(){
+  const data={theoryDB:S.theoryDB,questDB:S.questDB,pypDB:S.pypDB,users:S.users,at:new Date().toISOString()};
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  a.download='doubtx_'+new Date().toISOString().slice(0,10)+'.json';a.click();notif('Exported!');
+}
+function admImport(inp){
+  const f=inp.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(d.theoryDB)S.theoryDB=d.theoryDB;if(d.questDB)S.questDB=d.questDB;if(d.pypDB)S.pypDB=d.pypDB;if(d.users)S.users=d.users;dbSave();render();notif('Imported!');}catch(e){notif('Invalid JSON',false);}};
+  r.readAsText(f);
+}
+function admClear(){
+  Object.keys(S.theoryDB).forEach(k=>delete S.theoryDB[k]);
+  Object.keys(S.questDB).forEach(k=>{S.questDB[k]=S.questDB[k].filter(q=>q._seed);});
+  Object.keys(S.pypDB).forEach(k=>delete S.pypDB[k]);
+  dbSave();render();notif('Uploads cleared. Seed questions remain.');
+}
+// ═══════════════════════════════════════ DOUBT SOLVER ═══
+let dsConv=[], _dsSub='Physics';
+function renderDoubtSolver(){return `<div class="min-h-screen bg-slate-950">${topBar('AI Doubt Solver')}
+  <section class="px-4 py-10 max-w-4xl mx-auto">
+    <div class="text-center mb-8"><h2 class="text-3xl font-bold mb-2">Ask Your Doubt</h2>
+    <p class="text-slate-400">AI answers using uploaded study material + general JEE knowledge</p></div>
+    <div class="gb"><div class="p-6">
+      <div id="ds-inp">
+        <div class="flex gap-2 mb-4 flex-wrap">${['Physics','Chemistry','Mathematics'].map((s,i)=>`<button onclick="dsSetSub('${s}',this)" class="ds-s px-4 py-2 rounded-lg text-sm border transition-all ${i===0?'border-blue-500 text-blue-300 bg-blue-500/10':'border-slate-700 text-slate-300'}">${s}</button>`).join('')}</div>
+        <textarea id="ds-q" rows="4" placeholder="Type your doubt..." class="resize-none mb-4"></textarea>
+        <button onclick="dsAsk()" class="w-full py-3 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl font-bold text-white hover:opacity-90 flex items-center justify-center gap-2"><i data-lucide="sparkles" class="w-5 h-5"></i> Solve with AI</button>
+      </div>
+      <div id="ds-loading" class="hidden text-center py-14"><div class="spinner mx-auto mb-4"></div><p class="text-slate-400">Analyzing...</p></div>
+      <div id="ds-resp" class="hidden aup">
+        <div class="flex gap-2 mb-5 flex-wrap">${['solution','concepts','traps'].map((t,i)=>`<button onclick="dsTab('${t}')" id="dst-${t}" class="px-5 py-2 rounded-lg text-sm font-medium transition-all ${i===0?'tab-on':'tab-off'}">${t==='solution'?'Solution':t==='concepts'?'Key Concepts':'Common Traps'}</button>`).join('')}</div>
+        <div id="dsp-solution" class="prose"></div><div id="dsp-concepts" class="prose hidden"></div><div id="dsp-traps" class="prose hidden"></div>
+        <div class="flex gap-3 mt-6 flex-wrap">
+          <button onclick="show('ds-fu')" class="px-5 py-2.5 bg-violet-500/20 border border-violet-500/30 text-violet-300 rounded-xl text-sm hover:bg-violet-500/30 flex items-center gap-2"><i data-lucide="message-circle" class="w-4 h-4"></i> Follow-up</button>
+          <button onclick="dsReset()" class="px-5 py-2.5 bg-slate-700 text-slate-300 rounded-xl text-sm hover:bg-slate-600">← New Doubt</button>
+        </div>
+        <div id="ds-fu" class="hidden mt-4">
+          <div class="flex gap-3"><input id="ds-fuq" type="text" placeholder="Ask follow-up..." class="flex-1" onkeydown="if(event.key==='Enter')dsFU()">
+          <button onclick="dsFU()" class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl text-sm font-semibold text-white flex-shrink-0">Ask</button></div>
+          <div id="ds-fur" class="mt-4 prose hidden"></div>
+        </div>
+      </div>
+    </div></div>
+  </section></div>`;}
+function dsSetSub(s,btn){_dsSub=s;document.querySelectorAll('.ds-s').forEach(b=>b.className='ds-s px-4 py-2 rounded-lg text-sm border transition-all border-slate-700 text-slate-300');btn.className='ds-s px-4 py-2 rounded-lg text-sm border transition-all border-blue-500 text-blue-300 bg-blue-500/10';}
+async function dsAsk(){
+  const q=($$('ds-q')?.value||'').trim();if(!q){notif('Enter your doubt',false);return;}
+  hide('ds-inp');show('ds-loading');
+  const ctx=theoryCtx(_dsSub);
+  try{
+    dsConv=[{role:'user',content:`Subject: ${_dsSub}\n${ctx?'Uploaded study material context:\n'+ctx+'\n\n':''}Student doubt: ${q}`}];
+    const raw=await ai(`JEE expert tutor for ${_dsSub}. Use uploaded content context first, then general knowledge. Return ONLY valid JSON:
+{"solution":"HTML step-by-step with <strong> and <code>","concepts":"HTML <ul><li> key concepts","traps":"HTML <ul><li> exam traps"}`,dsConv[0].content,1800);
+    const d=extractJSON(raw);
+    dsConv.push({role:'assistant',content:raw});
+    hide('ds-loading');show('ds-resp');
+    setHTML('dsp-solution',d.solution||'');setHTML('dsp-concepts',d.concepts||'');setHTML('dsp-traps',d.traps||'');
+    lucide.createIcons();
+  }catch(e){hide('ds-loading');show('ds-inp');notif('AI error',false);}
+}
+function dsTab(t){['solution','concepts','traps'].forEach(id=>{$$('dst-'+id).className='px-5 py-2 rounded-lg text-sm font-medium transition-all '+(id===t?'tab-on':'tab-off');$$('dsp-'+id).classList.toggle('hidden',id!==t);});}
+async function dsFU(){
+  const q=($$('ds-fuq')?.value||'').trim();if(!q)return;
+  const r=$$('ds-fur');show('ds-fur');r.innerHTML='<div class="sm-spin" style="margin:.5rem 0;"></div>';
+  dsConv.push({role:'user',content:q});
+  try{const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,system:'JEE expert. Answer concisely in HTML with <strong>,<code>,<br>,<ul>,<li>.',messages:dsConv})});
+    const data=await res.json();const ans=(data.content||[]).map(b=>b.text||'').join('');
+    dsConv.push({role:'assistant',content:ans});r.innerHTML=`<div class="p-4 bg-slate-900 rounded-xl border border-slate-700 text-sm">${ans}</div>`;$$('ds-fuq').value='';
+  }catch(e){r.innerHTML='<p class="text-red-400 text-sm">Error</p>';}
+}
+function dsReset(){hide('ds-resp');hide('ds-fu');show('ds-inp');$$('ds-q').value='';dsConv=[];}
+// ═══════════════════════════════════════ YOUTUBE ═══
+let ytQs=[],ytCur=0,ytAns={},ytDone=false;
+function renderYoutube(){return `<div class="min-h-screen bg-slate-950">${topBar('YouTube Study + Quiz')}
+  <section class="px-4 py-10 max-w-5xl mx-auto">
+    <div class="text-center mb-8"><h2 class="text-3xl font-bold mb-2">Watch & Learn</h2><p class="text-slate-400">Paste YouTube URL → distraction-free player + AI generates 30 questions</p></div>
+    <div id="yt-setup" class="gb max-w-2xl mx-auto mb-8"><div class="p-6">
+      <div class="flex gap-3 mb-4"><input id="yt-url" type="text" placeholder="https://www.youtube.com/watch?v=..." class="flex-1">
+        <button onclick="ytLoad()" class="px-5 py-2.5 bg-gradient-to-r from-red-600 to-orange-600 rounded-xl font-semibold text-white hover:opacity-90 flex-shrink-0 flex items-center gap-2"><i data-lucide="play" class="w-4 h-4"></i> Load</button></div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div><label class="text-xs text-slate-400 mb-1 block">Subject</label><select id="yt-sub" class="w-full">${Object.keys(SYLLABUS).map(s=>`<option>${s}</option>`).join('')}</select></div>
+        <div><label class="text-xs text-slate-400 mb-1 block">Topic</label><input id="yt-topic" type="text" placeholder="e.g. Rotational Motion" class="w-full"></div>
+      </div>
+    </div></div>
+    <div id="yt-area" class="hidden">
+      <div class="grid lg:grid-cols-2 gap-6 mb-6">
+        <div class="bg-slate-900 rounded-xl overflow-hidden border border-slate-700"><iframe id="yt-frame" style="width:100%;aspect-ratio:16/9;border:none;" allowfullscreen allow="autoplay;encrypted-media"></iframe></div>
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+          <h3 class="font-semibold mb-3 flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4 text-violet-400"></i> AI Question Generator</h3>
+          <div id="yt-gen"><p class="text-sm text-slate-400 mb-4">AI generates 30 JEE-level questions on the video topic.</p>
+            <button onclick="ytGenQ()" class="w-full py-3 bg-gradient-to-r from-violet-600 to-blue-600 rounded-xl font-semibold text-white hover:opacity-90 flex items-center justify-center gap-2"><i data-lucide="zap" class="w-5 h-5"></i> Generate 30 Questions</button></div>
+          <div id="yt-gload" class="hidden text-center py-8"><div class="spinner mx-auto mb-3"></div><p class="text-slate-400 text-sm">Generating...</p></div>
+          <div id="yt-gdone" class="hidden"><p class="text-green-300 font-semibold mb-3 flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i> 30 questions ready!</p>
+            <button onclick="ytStartQ()" class="w-full py-2.5 bg-green-500/20 border border-green-500/30 text-green-300 rounded-xl text-sm font-semibold hover:bg-green-500/30">Start Quiz →</button></div>
+        </div>
+      </div>
+      <div id="yt-quiz" class="hidden bg-slate-800/50 border border-slate-700/50 rounded-xl p-6">
+        <div class="flex justify-between items-center mb-4"><span id="yt-qinfo" class="text-sm text-slate-400"></span><button onclick="hide('yt-quiz')" class="text-xs text-slate-500 hover:text-slate-300">Close</button></div>
+        <p id="yt-qt" class="text-slate-200 leading-relaxed mb-5"></p>
+        <div id="yt-opts" class="space-y-3 mb-4"></div>
+        <div id="yt-exp" class="hidden p-4 bg-slate-900 rounded-xl border border-violet-500/30 text-sm prose mb-4 aup"></div>
+        <div class="flex gap-3">
+          <button onclick="ytSub()" id="yt-sbtn" class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-xl text-sm font-semibold">Submit</button>
+          <button onclick="ytNext()" class="px-5 py-2.5 bg-slate-700 text-slate-300 rounded-xl text-sm hover:bg-slate-600 ml-auto">Next →</button>
+        </div>
+      </div>
+      <button onclick="ytReset()" class="mt-4 text-sm text-slate-500 hover:text-slate-300">← Different video</button>
+    </div>
+  </section></div>`;}
+function ytXid(u){const m=u.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);return m?m[1]:null;}
+function ytLoad(){const vid=ytXid(($$('yt-url')?.value||'').trim());if(!vid){notif('Invalid URL',false);return;}$$('yt-frame').src=`https://www.youtube-nocookie.com/embed/${vid}?rel=0&modestbranding=1`;show('yt-area');hide('yt-gdone');show('yt-gen');hide('yt-quiz');ytQs=[];ytCur=0;ytAns={};ytDone=false;lucide.createIcons();}
+async function ytGenQ(){const sub=$$('yt-sub')?.value||'Physics',topic=($$('yt-topic')?.value||'JEE topic');hide('yt-gen');show('yt-gload');
+  try{const raw=await ai(`Generate exactly 30 JEE MCQs on "${topic}" in ${sub}. ONLY raw JSON array (start with [ immediately, no preamble):\n[{"q":"...","opts":["A","B","C","D"],"ans":0,"exp":"..."}]`,`30 JEE ${sub} MCQs: ${topic}`,2800);ytQs=extractJSON(raw);hide('yt-gload');show('yt-gdone');notif('30 questions ready!');}
+  catch(e){hide('yt-gload');show('yt-gen');notif('AI error',false);}
+}
+function ytStartQ(){ytCur=0;ytAns={};ytDone=false;show('yt-quiz');ytLoadQ();}
+function ytLoadQ(){const q=ytQs[ytCur];setHTML('yt-qinfo',`Q${ytCur+1}/${ytQs.length}`);setHTML('yt-qt',q.q);hide('yt-exp');$$('yt-sbtn').disabled=false;setHTML('yt-opts',q.opts.map((o,i)=>`<div class="opt-row ${ytAns[ytCur]===i?'opt-sel':''}" onclick="ytSel(${i})"><div class="opt-lbl">${['A','B','C','D'][i]}</div><span class="text-sm text-slate-300">${o}</span></div>`).join(''));}
+function ytSel(i){if(ytDone)return;ytAns[ytCur]=i;document.querySelectorAll('#yt-opts .opt-row').forEach((el,idx)=>el.classList.toggle('opt-sel',idx===i));}
+async function ytSub(){if(ytAns[ytCur]===undefined){notif('Pick an option',false);return;}ytDone=true;const q=ytQs[ytCur],ch=ytAns[ytCur];document.querySelectorAll('#yt-opts .opt-row').forEach((el,i)=>{if(i===q.ans)el.classList.add('opt-ok');else if(i===ch)el.classList.add('opt-bad');});$$('yt-sbtn').disabled=true;show('yt-exp');setHTML('yt-exp','<div class="sm-spin"></div>');try{const e=await ai('JEE expert. 2-3 sentence MCQ explanation. Use <strong> and <code>.',`Q: ${q.q}\nCorrect: ${q.opts[q.ans]}\nStudent: ${q.opts[ch]}`,400);setHTML('yt-exp',e);}catch(e){setHTML('yt-exp',q.exp);}}
+function ytNext(){if(ytCur<ytQs.length-1){ytCur++;ytDone=false;ytLoadQ();}else notif('Quiz complete! 🎉');}
+function ytReset(){hide('yt-area');show('yt-setup');$$('yt-url').value='';ytQs=[];}
+// ═══════════════════════════════════════ PYP ═══
+let pypS={qs:[],cur:0,ans:{},done:false};
+function renderPYP(){return `<div class="min-h-screen bg-slate-950">${topBar('PYP Practice')}
+  <section class="px-4 py-10 max-w-6xl mx-auto">
+    <div class="text-center mb-8"><h2 class="text-3xl font-bold mb-2">Previous Year Papers</h2><p class="text-slate-400">JEE Main & Advanced papers sorted by year & subject</p></div>
+    <div id="pyp-setup">
+      <div class="gb max-w-2xl mx-auto mb-6"><div class="p-6">
+        <div class="grid sm:grid-cols-3 gap-3 mb-4">
+          <div><label class="text-xs text-slate-400 mb-1 block">Subject</label><select id="pyp-sub" class="w-full">${Object.keys(SYLLABUS).map(s=>`<option>${s}</option>`).join('')}</select></div>
+          <div><label class="text-xs text-slate-400 mb-1 block">Year</label><select id="pyp-yr" class="w-full">${PYP_YEARS.map(y=>`<option>${y}</option>`).join('')}</select></div>
+          <div><label class="text-xs text-slate-400 mb-1 block">Mode</label><select id="pyp-mode" class="w-full"><option>Practice (AI hints)</option><option>Exam</option></select></div>
+        </div>
+        <button onclick="pypStart()" class="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl font-bold text-white hover:opacity-90 flex items-center justify-center gap-2"><i data-lucide="play" class="w-5 h-5"></i> Start PYP</button>
+      </div></div>
+      <div class="max-w-2xl mx-auto"><h3 class="font-semibold text-slate-300 mb-3">Available Papers</h3>
+        <div class="flex flex-wrap gap-2">
+          ${Object.entries(S.pypDB).length?Object.entries(S.pypDB).map(([k,v])=>`<span class="pill bg-cyan-500/15 border border-cyan-500/30 text-cyan-300">${k.replace('::',' ')}: ${v.length}Qs</span>`).join(''):`<div class="w-full py-10 text-center text-slate-500 bg-slate-800/30 rounded-xl border border-dashed border-slate-700"><i data-lucide="file-text" class="w-8 h-8 mx-auto mb-2 opacity-30"></i><p class="text-sm">No PYP papers uploaded yet.</p><p class="text-xs mt-1">Admin uploads papers from Admin Panel → Upload PYP tab.</p></div>`}
+        </div>
+      </div>
+    </div>
+    <div id="pyp-quiz" class="hidden">
+      <div class="grid lg:grid-cols-4 gap-4">
+        <div class="lg:col-span-1 bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
+          <h3 class="text-sm font-semibold mb-1 text-slate-300">Questions</h3>
+          <p id="pyp-lbl" class="text-xs text-slate-500 mb-3"></p>
+          <div id="pyp-pal" class="grid grid-cols-5 gap-1.5 mb-4"></div>
+          <button onclick="pypEnd()" class="mt-4 w-full py-2 bg-red-500/20 border border-red-500/30 text-red-300 rounded-lg text-xs">Submit Test</button>
+        </div>
+        <div class="lg:col-span-3 bg-slate-800/50 border border-slate-700/50 rounded-xl p-6">
+          <div class="flex justify-between items-center mb-4"><span id="pyp-qi" class="text-sm text-slate-400"></span><span id="pyp-ct" class="pill bg-cyan-500/15 text-cyan-300 text-xs"></span></div>
+          <p id="pyp-qt" class="text-slate-200 leading-relaxed mb-5"></p>
+          <div id="pyp-opts" class="space-y-3 mb-5"></div>
+          <div id="pyp-ai" class="hidden p-4 bg-slate-900 rounded-xl border border-violet-500/30 text-sm prose mb-4 aup"></div>
+          <div class="flex gap-3">
+            <button onclick="pypSub()" id="pyp-sbtn" class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-xl text-sm font-semibold">Submit</button>
+            <button onclick="pypNext()" class="px-5 py-2.5 bg-slate-700 text-slate-300 rounded-xl text-sm hover:bg-slate-600 ml-auto">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="pyp-result" class="hidden max-w-2xl mx-auto text-center"></div>
+  </section></div>`;}
+function pypStart(){const sub=$$('pyp-sub').value,yr=$$('pyp-yr').value;const qs=S.pypDB[`${sub}::${yr}`]||[];if(!qs.length){notif(`No ${sub} PYP for ${yr}. Admin must upload.`,false);return;}pypS={qs:[...qs],cur:0,ans:{},done:false};hide('pyp-setup');show('pyp-quiz');setHTML('pyp-lbl',sub+' • '+yr);pypLoadQ();}
+function pypLoadQ(){const q=pypS.qs[pypS.cur];setHTML('pyp-qi',`Q${pypS.cur+1}/${pypS.qs.length}`);setHTML('pyp-ct',q.chapter||'');setHTML('pyp-qt',q.q);hide('pyp-ai');$$('pyp-sbtn').disabled=false;setHTML('pyp-opts',q.opts.map((o,i)=>`<div class="opt-row ${pypS.ans[pypS.cur]===i?'opt-sel':''}" onclick="pypSel(${i})"><div class="opt-lbl">${['A','B','C','D'][i]}</div><span class="text-sm text-slate-300">${o}</span></div>`).join(''));pypPal();}
+function pypSel(i){if(pypS.done)return;pypS.ans[pypS.cur]=i;pypLoadQ();}
+async function pypSub(){if(pypS.ans[pypS.cur]===undefined){notif('Pick option',false);return;}pypS.done=true;const q=pypS.qs[pypS.cur],ch=pypS.ans[pypS.cur];document.querySelectorAll('#pyp-opts .opt-row').forEach((el,i)=>{if(i===q.ans)el.classList.add('opt-ok');else if(i===ch)el.classList.add('opt-bad');});$$('pyp-sbtn').disabled=true;if(($$('pyp-mode')?.value||'').includes('Practice')){show('pyp-ai');setHTML('pyp-ai','<div class="sm-spin"></div>');try{const e=await ai('JEE expert. 2-3 sentence MCQ explanation. Use <strong> and <code>.',`Q: ${q.q}\nCorrect: ${q.opts[q.ans]}\nStudent: ${q.opts[ch]}`,400);setHTML('pyp-ai',e);}catch(e){setHTML('pyp-ai',q.exp||'');}}pypPal();}
+function pypNext(){if(pypS.cur<pypS.qs.length-1){pypS.cur++;pypS.done=false;pypLoadQ();}else pypEnd();}
+function pypPal(){setHTML('pyp-pal',pypS.qs.map((_,i)=>{let c=`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer `;c+=i===pypS.cur?'bg-blue-500 text-white ring-2 ring-blue-300':pypS.ans[i]!==undefined?'bg-green-500/30 border border-green-500 text-green-300':'bg-slate-600 text-slate-300';return `<div class="${c}" onclick="pypJ(${i})">${i+1}</div>`;}).join(''));}
+function pypJ(i){pypS.cur=i;pypS.done=pypS.ans[i]!==undefined;pypLoadQ();}
+function pypEnd(){const{qs,ans}=pypS,total=qs.length,answered=Object.keys(ans).length;const correct=Object.entries(ans).filter(([i,a])=>qs[i].ans===a).length;const wrong=answered-correct,marks=correct*4-wrong,pct=Math.round(correct/total*100);hide('pyp-quiz');show('pyp-result');setHTML('pyp-result',`<div class="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center mx-auto mb-4"><i data-lucide="trophy" class="w-8 h-8 text-white"></i></div><h2 class="text-3xl font-bold mb-4">PYP Complete!</h2><div class="grid grid-cols-3 gap-4 mb-6"><div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4"><p class="text-xs text-slate-400">Correct</p><p class="text-2xl font-bold text-green-400">${correct}</p></div><div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4"><p class="text-xs text-slate-400">Wrong</p><p class="text-2xl font-bold text-red-400">${wrong}</p></div><div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4"><p class="text-xs text-slate-400">Score</p><p class="text-2xl font-bold text-blue-400">${marks}</p></div></div><div class="bg-slate-800 rounded-full h-3 mb-3"><div class="bg-gradient-to-r from-cyan-500 to-blue-600 h-3 rounded-full" style="width:${pct}%"></div></div><p class="text-slate-400 mb-6">${pct}% accuracy</p><button onclick="hide('pyp-result');show('pyp-setup')" class="px-8 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl font-semibold text-white hover:opacity-90">Practice Another</button>`);lucide.createIcons();}
+// ═══════════════════════════════════════ CBT ═══
+let cbtS={sub:'Physics',chap:'',qs:[],cur:0,ans:{},reviewed:new Set(),done:false,timer:null,secs:0,mode:'practice'};
+function renderCBT(){return `<div class="min-h-screen bg-slate-950">${topBar('CBT Practice')}
+  <section class="px-4 py-10 max-w-6xl mx-auto">
+    <div id="cbt-setup">
+      <div class="text-center mb-8"><h2 class="text-3xl font-bold mb-2">NTA-Style CBT</h2><p class="text-slate-400">Chapter-wise from your content DB + AI generation</p></div>
+      <div class="gb max-w-2xl mx-auto"><div class="p-6">
+        <div class="grid sm:grid-cols-2 gap-3 mb-4">
+          <div><label class="text-xs text-slate-400 mb-1 block">Subject</label><select id="cbt-sub" onchange="cbtChaps()" class="w-full">${Object.keys(SYLLABUS).map(s=>`<option>${s}</option>`).join('')}</select></div>
+          <div><label class="text-xs text-slate-400 mb-1 block">Chapter</label><select id="cbt-chap" class="w-full">${SYLLABUS.Physics.map(c=>`<option>${c}</option>`).join('')}</select></div>
+        </div>
+        <div class="mb-4"><label class="text-xs text-slate-400 mb-1 block">Mode</label>
+          <div class="flex gap-2">
+            <button onclick="cbtMode('practice',this)" id="cbt-mp" class="flex-1 py-2 rounded-xl text-sm border border-blue-500 text-blue-300 bg-blue-500/10">Practice (AI hints)</button>
+            <button onclick="cbtMode('exam',this)" id="cbt-me" class="flex-1 py-2 rounded-xl text-sm border border-slate-700 text-slate-300 hover:border-slate-500">Exam Mode</button>
+          </div>
+        </div>
+        <p id="cbt-si" class="text-xs text-slate-500 mb-4"></p>
+        <button onclick="cbtStart()" class="w-full py-3 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl font-bold text-white hover:opacity-90 flex items-center justify-center gap-2"><i data-lucide="play" class="w-5 h-5"></i> Start CBT</button>
+      </div></div>
+    </div>
+    <div id="cbt-quiz" class="hidden">
+      <div class="grid lg:grid-cols-4 gap-4">
+        <div class="lg:col-span-1 bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
+          <h3 class="text-sm font-semibold mb-1 text-slate-300">Questions</h3>
+          <p id="cbt-ct" class="text-xs text-slate-500 mb-3"></p>
+          <div id="cbt-pal" class="grid grid-cols-5 gap-1.5 mb-4"></div>
+          <div class="mt-3 text-center"><p class="text-xs text-slate-400">Timer</p><p id="cbt-tmr" class="font-mono text-lg font-bold text-blue-400">00:00</p></div>
+          <button onclick="cbtEnd()" class="mt-4 w-full py-2 bg-red-500/20 border border-red-500/30 text-red-300 rounded-lg text-xs">End Test</button>
+        </div>
+        <div class="lg:col-span-3 bg-slate-800/50 border border-slate-700/50 rounded-xl p-6">
+          <div class="flex justify-between items-center mb-4"><span id="cbt-qi" class="text-sm text-slate-400"></span><span id="cbt-st" class="pill bg-violet-500/15 text-violet-300 text-xs"></span></div>
+          <p id="cbt-qt" class="text-slate-200 leading-relaxed mb-5"></p>
+          <div id="cbt-opts" class="space-y-3 mb-5"></div>
+          <div id="cbt-aib" class="hidden p-4 bg-slate-900 rounded-xl border border-violet-500/30 mb-4 aup">
+            <div class="flex items-center gap-2 mb-2"><i data-lucide="sparkles" class="w-4 h-4 text-violet-400"></i><span class="text-xs font-semibold text-violet-300">AI Explanation</span></div>
+            <div id="cbt-ait" class="text-sm prose"></div>
+          </div>
+          <div class="flex gap-3 flex-wrap">
+            <button onclick="cbtSub()" id="cbt-sbtn" class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-xl text-sm font-semibold">Submit</button>
+            <button onclick="cbtMark()" class="px-5 py-2.5 bg-violet-500/20 border border-violet-500/30 text-violet-300 rounded-xl text-sm hover:bg-violet-500/30">Mark Review</button>
+            <button onclick="cbtNext()" class="px-5 py-2.5 bg-slate-700 text-slate-300 rounded-xl text-sm hover:bg-slate-600 ml-auto">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="cbt-result" class="hidden max-w-2xl mx-auto text-center"></div>
+  </section></div>`;}
+function cbtChaps(){const sub=$$('cbt-sub').value,sel=$$('cbt-chap');if(!sel)return;sel.innerHTML=SYLLABUS[sub].map(c=>`<option>${c}</option>`).join('');const k=dbk(sub,sel.value);const cnt=(S.questDB[k]||[]).length;setHTML('cbt-si',cnt+' questions in DB for this chapter');}
+function cbtMode(m,btn){cbtS.mode=m;document.querySelectorAll('[id^=cbt-m]').forEach(b=>b.className='flex-1 py-2 rounded-xl text-sm border border-slate-700 text-slate-300 hover:border-slate-500');btn.className='flex-1 py-2 rounded-xl text-sm border border-blue-500 text-blue-300 bg-blue-500/10';}
+async function cbtStart(){
+  const sub=$$('cbt-sub').value,chap=$$('cbt-chap').value,k=dbk(sub,chap);
+  let qs=[...(S.questDB[k]||[])].sort(()=>Math.random()-.5).slice(0,15);
+  if(qs.length<5){notif('Generating AI questions...');try{const raw=await ai(`Generate 10 JEE ${sub} MCQs on "${chap}". ONLY raw JSON array (start with [ immediately, no preamble):\n[{"q":"...","opts":["A","B","C","D"],"ans":0,"exp":"..."}]`,`10 JEE MCQs: ${sub} - ${chap}`,1500);const aiQs=extractJSON(raw);if(!S.questDB[k])S.questDB[k]=[];S.questDB[k].push(...aiQs.map(q=>({...q,chapter:chap,subject:sub,_aiGen:true})));dbSave();qs=[...S.questDB[k]].sort(()=>Math.random()-.5).slice(0,15);}catch(e){}}
+  if(!qs.length){notif('No questions available',false);return;}
+  const mode=cbtS.mode;cbtS={sub,chap,qs,cur:0,ans:{},reviewed:new Set(),done:false,secs:0,mode};
+  cbtS.timer=setInterval(()=>{cbtS.secs++;const el=$$('cbt-tmr');if(!el){clearInterval(cbtS.timer);return;}el.textContent=String(Math.floor(cbtS.secs/60)).padStart(2,'0')+':'+String(cbtS.secs%60).padStart(2,'0');},1000);
+  hide('cbt-setup');show('cbt-quiz');setHTML('cbt-ct',sub+' • '+chap);cbtLoadQ();
+}
+function cbtLoadQ(){const q=cbtS.qs[cbtS.cur];setHTML('cbt-qi',`Q${cbtS.cur+1}/${cbtS.qs.length}`);setHTML('cbt-st',q.isPYQ?'PYP '+q.year:q._aiGen?'AI Generated':'Question Bank');setHTML('cbt-qt',q.q);hide('cbt-aib');$$('cbt-sbtn').disabled=false;$$('cbt-sbtn').textContent='Submit';setHTML('cbt-opts',q.opts.map((o,i)=>`<div class="opt-row ${cbtS.ans[cbtS.cur]===i?'opt-sel':''}" onclick="cbtSel(${i})"><div class="opt-lbl">${['A','B','C','D'][i]}</div><span class="text-sm text-slate-300">${o}</span></div>`).join(''));cbtPal();}
+function cbtSel(i){if(cbtS.done)return;cbtS.ans[cbtS.cur]=i;cbtLoadQ();}
+async function cbtSub(){if(cbtS.ans[cbtS.cur]===undefined){notif('Pick option',false);return;}cbtS.done=true;const q=cbtS.qs[cbtS.cur],ch=cbtS.ans[cbtS.cur];document.querySelectorAll('#cbt-opts .opt-row').forEach((el,i)=>{el.style.cursor='not-allowed';if(i===q.ans)el.classList.add('opt-ok');else if(i===ch)el.classList.add('opt-bad');});$$('cbt-sbtn').disabled=true;$$('cbt-sbtn').textContent=ch===q.ans?'✓ Correct!':'✗ Wrong';if(cbtS.mode==='practice'){show('cbt-aib');setHTML('cbt-ait','<div class="sm-spin"></div>');lucide.createIcons();try{const e=await ai('JEE expert. 2-3 sentence MCQ explanation. Use <strong> and <code>.',`Q: ${q.q}\nCorrect: ${q.opts[q.ans]}\nStudent: ${q.opts[ch]}\nHint: ${q.exp||''}`,400);setHTML('cbt-ait',e);}catch(e){setHTML('cbt-ait',q.exp||'');}}cbtPal();}
+function cbtNext(){if(cbtS.cur<cbtS.qs.length-1){cbtS.cur++;cbtS.done=false;cbtLoadQ();}else cbtEnd();}
+function cbtMark(){cbtS.reviewed.has(cbtS.cur)?cbtS.reviewed.delete(cbtS.cur):cbtS.reviewed.add(cbtS.cur);cbtPal();}
+function cbtPal(){setHTML('cbt-pal',cbtS.qs.map((_,i)=>{let c=`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer `;c+=i===cbtS.cur?'bg-blue-500 text-white ring-2 ring-blue-300':cbtS.reviewed.has(i)?'bg-violet-500/30 border border-violet-500 text-violet-300':cbtS.ans[i]!==undefined?'bg-green-500/30 border border-green-500 text-green-300':'bg-slate-600 text-slate-300';return `<div class="${c}" onclick="cbtJ(${i})">${i+1}</div>`;}).join(''));}
+function cbtJ(i){cbtS.cur=i;cbtS.done=cbtS.ans[i]!==undefined;cbtLoadQ();if(cbtS.done){const q=cbtS.qs[i],ch=cbtS.ans[i];document.querySelectorAll('#cbt-opts .opt-row').forEach((el,idx)=>{el.style.cursor='not-allowed';if(idx===q.ans)el.classList.add('opt-ok');else if(idx===ch)el.classList.add('opt-bad');});}}
+function cbtEnd(){clearInterval(cbtS.timer);const{qs,ans,secs}=cbtS,total=qs.length,answered=Object.keys(ans).length;const correct=Object.entries(ans).filter(([i,a])=>qs[i].ans===a).length;const wrong=answered-correct,marks=correct*4-wrong,pct=Math.round(correct/total*100);hide('cbt-quiz');show('cbt-result');setHTML('cbt-result',`<div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center mx-auto mb-4"><i data-lucide="award" class="w-8 h-8 text-white"></i></div><h2 class="text-3xl font-bold mb-4">Test Complete!</h2><div class="grid grid-cols-4 gap-3 mb-5"><div class="bg-green-500/10 border border-green-500/30 rounded-xl p-3"><p class="text-xs text-slate-400">Correct</p><p class="text-xl font-bold text-green-400">${correct}</p></div><div class="bg-red-500/10 border border-red-500/30 rounded-xl p-3"><p class="text-xs text-slate-400">Wrong</p><p class="text-xl font-bold text-red-400">${wrong}</p></div><div class="bg-slate-700/50 rounded-xl p-3"><p class="text-xs text-slate-400">Skipped</p><p class="text-xl font-bold">${total-answered}</p></div><div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3"><p class="text-xs text-slate-400">Score</p><p class="text-xl font-bold text-blue-400">${marks}</p></div></div><div class="bg-slate-800 rounded-full h-3 mb-2"><div class="bg-gradient-to-r from-blue-500 to-violet-600 h-3 rounded-full" style="width:${pct}%"></div></div><p class="text-slate-400 mb-6">${pct}% • ${Math.floor(secs/60)}m ${secs%60}s</p><button onclick="hide('cbt-result');show('cbt-setup')" class="px-8 py-3 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl font-semibold text-white hover:opacity-90">Practice Another Chapter</button>`);lucide.createIcons();}
+// ═══════════════════════════════════════ MOCK ═══
+let mockQs=[],mockS={cur:0,ans:{},reviewed:new Set(),done:false,timer:null},mgSub='Physics',mgChaps=new Set();
+function renderMock(){return `<div class="min-h-screen bg-slate-950">${topBar('Mock Generator')}
+  <section class="px-4 py-10 max-w-6xl mx-auto">
+    <div id="mg-config">
+      <div class="text-center mb-8"><h2 class="text-3xl font-bold mb-2">Smart Mock Generator</h2><p class="text-slate-400">Chapter-wise mocks from content DB + AI-generated questions</p></div>
+      <div class="gb max-w-3xl mx-auto"><div class="p-6 sm:p-8">
+        <div class="mb-5"><label class="text-xs text-slate-400 mb-2 block font-medium">Subject</label>
+          <div class="flex gap-2 flex-wrap" id="mg-subs">${Object.keys(SYLLABUS).map((s,i)=>`<button onclick="mgSetSub('${s}',this)" class="${i===0?'border-blue-500 text-blue-300 bg-blue-500/10':'border-slate-700 text-slate-300'} px-4 py-2 rounded-lg text-sm border transition-all">${s}</button>`).join('')}</div>
+        </div>
+        <div class="mb-5">
+          <div class="flex items-center justify-between mb-2"><label class="text-xs text-slate-400 font-medium">Chapters</label><button onclick="mgAll()" class="text-xs text-blue-400 hover:underline">All</button></div>
+          <div id="mg-chaps" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+        </div>
+        <div class="grid sm:grid-cols-3 gap-3 mb-5">
+          <div><label class="text-xs text-slate-400 mb-1 block">Questions</label><select id="mg-cnt" class="w-full"><option>10</option><option selected>20</option><option>30</option><option>45</option></select></div>
+          <div><label class="text-xs text-slate-400 mb-1 block">Difficulty</label><select id="mg-diff" class="w-full"><option>Mixed</option><option>Easy</option><option>Medium</option><option>Hard</option><option>Olympiad</option></select></div>
+          <div><label class="text-xs text-slate-400 mb-1 block">Time (min)</label><select id="mg-time" class="w-full"><option>15</option><option>30</option><option selected>45</option><option>60</option><option>90</option></select></div>
+        </div>
+        <div class="flex flex-col gap-3 mb-5">
+          <label class="flex items-center gap-3 p-3 bg-violet-500/8 border border-violet-500/20 rounded-xl cursor-pointer"><input type="checkbox" id="mg-ai" checked class="w-4 h-4 accent-violet-500"><div><p class="text-sm font-medium">AI-generate additional questions</p><p class="text-xs text-slate-400">Claude fills gaps beyond the question bank</p></div></label>
+          <label class="flex items-center gap-3 p-3 bg-cyan-500/8 border border-cyan-500/20 rounded-xl cursor-pointer"><input type="checkbox" id="mg-pyp" class="w-4 h-4 accent-cyan-500"><div><p class="text-sm font-medium">Include PYP questions</p><p class="text-xs text-slate-400">Mix previous year questions into the mock</p></div></label>
+        </div>
+        <button onclick="mgGen()" id="mg-gbtn" class="w-full py-4 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl font-bold text-white hover:opacity-90 glow-v flex items-center justify-center gap-2"><i data-lucide="zap" class="w-5 h-5"></i> Generate Mock Test</button>
+        <div id="mg-load" class="hidden text-center py-8"><div class="spinner mx-auto mb-3"></div><p class="text-slate-400 text-sm">Building mock from DB + AI...</p></div>
+      </div></div>
+    </div>
+    <div id="mg-quiz" class="hidden">
+      <div class="grid lg:grid-cols-4 gap-4">
+        <div class="lg:col-span-1 bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
+          <p id="mg-meta" class="text-xs text-slate-500 mb-3"></p>
+          <div id="mg-pal" class="grid grid-cols-5 gap-1.5 mb-4"></div>
+          <div class="mt-3 text-center"><p class="text-xs text-slate-400">Time Left</p><p id="mg-tmr" class="font-mono text-xl font-bold text-orange-400">--:--</p></div>
+          <button onclick="mgSubAll()" class="mt-3 w-full py-2 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-lg text-xs font-semibold">Submit Test</button>
+        </div>
+        <div class="lg:col-span-3 bg-slate-800/50 border border-slate-700/50 rounded-xl p-6">
+          <div class="flex justify-between items-center mb-4"><span id="mg-qi" class="text-sm text-slate-400"></span><span id="mg-qt2" class="pill bg-violet-500/15 text-violet-300 text-xs"></span></div>
+          <p id="mg-qt" class="text-slate-200 leading-relaxed mb-5"></p>
+          <div id="mg-opts" class="space-y-3 mb-5"></div>
+          <div class="flex gap-3 flex-wrap">
+            <button onclick="mgSubmitAns()" id="mg-sbtn" class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-xl text-sm font-semibold">Submit</button>
+            <button onclick="mgMark()" class="px-5 py-2.5 bg-violet-500/20 border border-violet-500/30 text-violet-300 rounded-xl text-sm hover:bg-violet-500/30">Mark Review</button>
+            <button onclick="mgNext()" class="px-5 py-2.5 bg-slate-700 text-slate-300 rounded-xl text-sm hover:bg-slate-600 ml-auto">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="mg-result" class="hidden max-w-3xl mx-auto"></div>
+  </section></div>`;}
+function mgSetSub(s,btn){mgSub=s;document.querySelectorAll('#mg-subs button').forEach(b=>b.className='px-4 py-2 rounded-lg text-sm border transition-all border-slate-700 text-slate-300');btn.className='px-4 py-2 rounded-lg text-sm border transition-all border-blue-500 text-blue-300 bg-blue-500/10';mgRChaps();}
+function mgRChaps(){const chs=SYLLABUS[mgSub]||[];mgChaps=new Set(chs);setHTML('mg-chaps',chs.map(c=>{const k=dbk(mgSub,c),cnt=(S.questDB[k]||[]).length;return `<label class="flex items-center gap-2 p-2.5 bg-slate-900 border border-slate-700 rounded-lg cursor-pointer hover:border-blue-500/40 transition-all"><input type="checkbox" checked class="w-4 h-4 accent-blue-500 mg-cc" value="${c}" onchange="mgTog('${c}',this.checked)"><span class="text-slate-300 text-xs flex-1">${c}</span>${cnt?`<span class="pill bg-green-500/15 text-green-400" style="padding:.1rem .4rem;font-size:.6rem">${cnt}</span>`:''}</label>`;}).join(''));}
+function mgTog(c,on){on?mgChaps.add(c):mgChaps.delete(c);}
+function mgAll(){mgChaps=new Set(SYLLABUS[mgSub]);document.querySelectorAll('.mg-cc').forEach(cb=>cb.checked=true);}
+async function mgGen(){
+  if(!mgChaps.size){notif('Select a chapter',false);return;}
+  const cnt=parseInt($$('mg-cnt').value),diff=$$('mg-diff').value,timeMin=parseInt($$('mg-time').value);
+  const useAI=$$('mg-ai').checked,usePYP=$$('mg-pyp').checked;
+  hide('mg-gbtn');show('mg-load');
+  let bq=[];for(const ch of mgChaps){const k=dbk(mgSub,ch);bq.push(...(S.questDB[k]||[]).filter(q=>usePYP||!q.isPYQ).map(q=>({...q,chapter:ch})));}
+  bq=bq.sort(()=>Math.random()-.5);
+  let final=bq.slice(0,Math.min(bq.length,Math.ceil(cnt*.65)));
+  if(useAI&&final.length<cnt){const need=cnt-final.length,chs=[...mgChaps].join(', ');try{const raw=await ai(`Generate ${need} JEE MCQs for ${mgSub}: ${chs}. Difficulty: ${diff}. ONLY raw JSON array (start with [ immediately, no preamble):\n[{"q":"...","opts":["A","B","C","D"],"ans":0,"exp":"...","chapter":"name"}]`,`${need} ${diff} MCQs: ${mgSub}-${chs}`,2500);final=[...final,...extractJSON(raw).map(q=>({...q,subject:mgSub,_aiGen:true}))];}catch(e){}}
+  final=final.slice(0,cnt).sort(()=>Math.random()-.5);
+  if(!final.length){notif('No questions',false);hide('mg-load');show('mg-gbtn');return;}
+  mockQs=final;mockS={cur:0,ans:{},reviewed:new Set(),done:false};
+  let sl=timeMin*60;
+  mockS.timer=setInterval(()=>{sl--;const el=$$('mg-tmr');if(!el){clearInterval(mockS.timer);return;}el.textContent=String(Math.floor(sl/60)).padStart(2,'0')+':'+String(sl%60).padStart(2,'0');el.className='font-mono text-xl font-bold '+(sl<300?'text-red-400':'text-orange-400');if(sl<=0){clearInterval(mockS.timer);mgSubAll();}},1000);
+  hide('mg-load');hide('mg-config');show('mg-quiz');setHTML('mg-meta',mgSub+' • '+[...mgChaps].slice(0,2).join(', ')+(mgChaps.size>2?'…':''));mgLoadQ();lucide.createIcons();
+}
+function mgLoadQ(){const q=mockQs[mockS.cur];setHTML('mg-qi',`Q${mockS.cur+1}/${mockQs.length}`);setHTML('mg-qt2',(q.chapter||'')+(q.isPYQ?' • PYP':q._aiGen?' • AI':' • Bank'));setHTML('mg-qt',q.q);$$('mg-sbtn').disabled=false;$$('mg-sbtn').textContent='Submit';setHTML('mg-opts',q.opts.map((o,i)=>`<div class="opt-row ${mockS.ans[mockS.cur]===i?'opt-sel':''}" onclick="mgSel(${i})"><div class="opt-lbl">${['A','B','C','D'][i]}</div><span class="text-sm text-slate-300">${o}</span></div>`).join(''));mgPal();}
+function mgSel(i){if(mockS.done)return;mockS.ans[mockS.cur]=i;mgLoadQ();}
+function mgSubmitAns(){if(mockS.ans[mockS.cur]===undefined){notif('Pick option',false);return;}mockS.done=true;const q=mockQs[mockS.cur],ch=mockS.ans[mockS.cur];document.querySelectorAll('#mg-opts .opt-row').forEach((el,i)=>{el.style.cursor='not-allowed';if(i===q.ans)el.classList.add('opt-ok');else if(i===ch)el.classList.add('opt-bad');});$$('mg-sbtn').disabled=true;$$('mg-sbtn').textContent=ch===q.ans?'✓ Correct':'✗ Wrong';mgPal();}
+function mgNext(){if(mockS.cur<mockQs.length-1){mockS.cur++;mockS.done=false;mgLoadQ();}else mgSubAll();}
+function mgMark(){mockS.reviewed.has(mockS.cur)?mockS.reviewed.delete(mockS.cur):mockS.reviewed.add(mockS.cur);mgPal();}
+function mgPal(){const{cur,ans,reviewed}=mockS;setHTML('mg-pal',mockQs.map((_,i)=>{let c=`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer `;c+=i===cur?'bg-blue-500 text-white ring-2 ring-blue-300':reviewed.has(i)?'bg-violet-500/30 border border-violet-500 text-violet-300':ans[i]!==undefined?'bg-green-500/30 border border-green-500 text-green-300':'bg-slate-600 text-slate-300';return `<div class="${c}" onclick="mgJ(${i})">${i+1}</div>`;}).join(''));}
+function mgJ(i){mockS.cur=i;mockS.done=mockS.ans[i]!==undefined;mgLoadQ();if(mockS.done){const q=mockQs[i],ch=mockS.ans[i];document.querySelectorAll('#mg-opts .opt-row').forEach((el,idx)=>{el.style.cursor='not-allowed';if(idx===q.ans)el.classList.add('opt-ok');else if(idx===ch)el.classList.add('opt-bad');});}}
+function mgSubAll(){
+  clearInterval(mockS.timer);const total=mockQs.length,answered=Object.keys(mockS.ans).length;
+  const correct=Object.entries(mockS.ans).filter(([i,a])=>mockQs[i].ans===a).length;
+  const wrong=answered-correct,marks=correct*4-wrong,pct=Math.round(correct/total*100);
+  const cm={};mockQs.forEach((q,i)=>{const ch=q.chapter||'?';if(!cm[ch])cm[ch]={t:0,c:0};cm[ch].t++;if(mockS.ans[i]===q.ans)cm[ch].c++;});
+  hide('mg-quiz');show('mg-result');
+  setHTML('mg-result',`<div class="text-center mb-8"><div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center mx-auto mb-4"><i data-lucide="trophy" class="w-8 h-8 text-white"></i></div><h2 class="text-3xl font-bold mb-1">Mock Complete!</h2><p class="text-slate-400">${mgSub}</p></div>
+    <div class="grid grid-cols-4 gap-3 mb-5"><div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center"><p class="text-xs text-slate-400">Correct</p><p class="text-2xl font-bold text-green-400">${correct}</p></div><div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center"><p class="text-xs text-slate-400">Wrong</p><p class="text-2xl font-bold text-red-400">${wrong}</p></div><div class="bg-slate-700/50 rounded-xl p-4 text-center"><p class="text-xs text-slate-400">Skipped</p><p class="text-2xl font-bold">${total-answered}</p></div><div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 text-center"><p class="text-xs text-slate-400">Score</p><p class="text-2xl font-bold text-blue-400">${marks}</p></div></div>
+    <div class="bg-slate-800 rounded-full h-3 mb-2"><div class="bg-gradient-to-r from-blue-500 to-violet-600 h-3 rounded-full" style="width:${pct}%"></div></div>
+    <p class="text-slate-400 text-center mb-6">${pct}% accuracy</p>
+    <div class="mb-6"><h3 class="text-sm font-semibold text-slate-300 mb-3">Chapter-wise Breakdown</h3><div class="space-y-2">${Object.entries(cm).map(([ch,d])=>{const cp=Math.round(d.c/d.t*100),col=cp>=70?'green':cp>=40?'yellow':'red';return `<div class="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl"><span class="text-sm text-slate-300 flex-1 truncate">${ch}</span><div class="w-24 bg-slate-700 rounded-full h-2 flex-shrink-0"><div class="bg-${col}-500 h-2 rounded-full" style="width:${cp}%"></div></div><span class="text-xs text-slate-400 w-16 text-right">${d.c}/${d.t} (${cp}%)</span></div>`;}).join('')}</div></div>
+    <div class="text-center"><button onclick="mgReset()" class="px-8 py-3 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl font-semibold text-white hover:opacity-90">Generate Another</button></div>`);
+  lucide.createIcons();
+}
+function mgReset(){mockQs=[];show('mg-config');hide('mg-result');show('mg-gbtn');hide('mg-load');}
+// ═══════════════════════════════════════ RENDER ═══
+function render(){
+  // Clear any running timers from previous page
+  try{
+    if(typeof cbtS!=='undefined'&&cbtS.timer){clearInterval(cbtS.timer);cbtS.timer=null;}
+    if(typeof mockS!=='undefined'&&mockS.timer){clearInterval(mockS.timer);mockS.timer=null;}
+  }catch(e){}
+  const app=document.getElementById('app'),p=S.page;
+  if(!S.user)app.innerHTML=renderLanding();
+  else if(p==='dashboard')app.innerHTML=renderDashboard();
+  else if(p==='admin')app.innerHTML=renderAdmin();
+  else if(p==='doubt-solver')app.innerHTML=renderDoubtSolver();
+  else if(p==='youtube')app.innerHTML=renderYoutube();
+  else if(p==='pyp')app.innerHTML=renderPYP();
+  else if(p==='cbt')app.innerHTML=renderCBT();
+  else if(p==='mock')app.innerHTML=renderMock();
+  else app.innerHTML=renderDashboard();
+  lucide.createIcons();
+  try{
+    if(p==='admin'){admChaps();setTimeout(()=>{if($$('atab-content'))aTab('content');},0);}
+    if(p==='cbt')cbtChaps();
+    if(p==='mock')mgRChaps();
+  }catch(e){console.warn('post-render init error:',e);}
+}
+// ═══════════════════════════════════════ INIT ═══
+(function(){
+  try{
+    const saved=dbLoad();
+    if(saved){
+      if(saved.users)S.users=saved.users;
+      if(saved.theoryDB)S.theoryDB=saved.theoryDB;
+      if(saved.questDB)S.questDB=saved.questDB;
+      if(saved.pypDB)S.pypDB=saved.pypDB;
+      console.log('✓ DoubtX DB loaded from localStorage. Users:'+S.users.length+' Questions:'+Object.values(S.questDB).reduce((a,v)=>a+v.length,0));
+    }
+  }catch(e){console.warn('DB load failed, starting fresh:',e);}
+  try{initSeed();}catch(e){console.warn('Seed init failed:',e);}
+  try{render();}catch(e){
+    console.error('Render error:',e);
+    document.getElementById('app').innerHTML='<div style="padding:2rem;color:#f87171;font-family:monospace;background:#0f172a;min-height:100vh;"><h2>DoubtX Error</h2><p>'+e.message+'</p><p style="color:#64748b;font-size:.85em">'+e.stack+'</p><button onclick="localStorage.clear();location.reload()" style="margin-top:1rem;padding:.5rem 1rem;background:#ef4444;color:white;border:none;border-radius:.5rem;cursor:pointer;">Clear DB & Reload</button></div>';
+  }
+})();
+</script>
+</body>
+</html>
